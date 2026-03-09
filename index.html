@@ -4,10 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Urs Bollhalder – Coming Soon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
       background: #0d1117;
       color: #e8e4dc;
       min-height: 100vh;
@@ -17,10 +20,38 @@
       overflow: hidden;
     }
     canvas#bg { position: fixed; inset: 0; z-index: 0; opacity: 0.35; }
+
+    /* Enter screen */
+    #enter-screen {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      background: #0d1117;
+      transition: opacity 0.8s ease;
+    }
+    #enter-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #enter-content { text-align: center; }
+    .enter-btn {
+      background: none;
+      border: 1px solid rgba(126,184,201,0.3); border-radius: 2px;
+      color: #e8e4dc;
+      font-size: 0.85rem; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 0.75rem 2.5rem;
+      cursor: pointer;
+      transition: border-color 0.3s, color 0.3s, background 0.3s;
+    }
+    .enter-btn:hover { border-color: #7eb8c9; color: #7eb8c9; background: rgba(126,184,201,0.06); }
+
+    /* Main content */
     #app {
       position: relative; z-index: 1;
       text-align: center; padding: 2rem; max-width: 540px;
+      opacity: 0;
+      transition: opacity 0.8s ease 0.3s;
     }
+    #app.visible { opacity: 1; }
     h1 {
       font-size: clamp(2rem, 5vw, 3rem);
       font-weight: 300; letter-spacing: 0.08em;
@@ -51,6 +82,18 @@
 </head>
 <body>
   <canvas id="bg"></canvas>
+
+  <!-- Enter screen -->
+  <div id="enter-screen">
+    <div id="enter-content">
+      <h1>Urs Bollhalder</h1>
+      <div class="subtitle">Audio Artist &amp; Developer</div>
+      <div class="divider"></div>
+      <button class="enter-btn" id="enter-btn">Enter</button>
+    </div>
+  </div>
+
+  <!-- Main content -->
   <div id="app">
     <h1>Urs Bollhalder</h1>
     <div class="subtitle">Audio Artist &amp; Developer</div>
@@ -69,12 +112,13 @@
         GitHub
       </a>
     </div>
-    <div class="footer">© <span id="yr"></span> Urs Bollhalder</div>
+    <div class="footer">&copy; <span id="yr"></span> Urs Bollhalder</div>
   </div>
 
   <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
 
+    // Aurora background
     const canvas = document.getElementById('bg');
     const ctx = canvas.getContext('2d');
     let W, H, t = 0;
@@ -114,6 +158,37 @@
       t += 0.015;
     }
     loop();
+
+    // Background audio with fade-in
+    const audio = new Audio('audio/20_SfmS_CITY SUNDOWN (LOOP).mp3');
+    audio.loop = true;
+    audio.volume = 0;
+
+    function fadeInAudio(targetVolume, duration) {
+      const step = 30;
+      const steps = duration / step;
+      const increment = targetVolume / steps;
+      const interval = setInterval(() => {
+        audio.volume = Math.min(audio.volume + increment, targetVolume);
+        if (audio.volume >= targetVolume) clearInterval(interval);
+      }, step);
+    }
+
+    // Enter screen
+    document.getElementById('enter-btn').addEventListener('click', () => {
+      const enterScreen = document.getElementById('enter-screen');
+      const app = document.getElementById('app');
+
+      enterScreen.classList.add('hidden');
+      app.classList.add('visible');
+
+      audio.play();
+      fadeInAudio(0.3, 2000);
+
+      enterScreen.addEventListener('transitionend', () => {
+        enterScreen.remove();
+      }, { once: true });
+    });
   </script>
 </body>
 </html>
