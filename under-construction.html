@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Urs Bollhalder – Coming Soon</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: #0d1117;
+      color: #e8e4dc;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    canvas#bg { position: fixed; inset: 0; z-index: 0; opacity: 0.35; }
+    #app {
+      position: relative; z-index: 1;
+      text-align: center; padding: 2rem; max-width: 540px;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 300; letter-spacing: 0.08em;
+      color: #f0ece4; margin-bottom: 0.4rem;
+    }
+    .subtitle {
+      font-size: 0.85rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: #7eb8c9; margin-bottom: 2.5rem;
+    }
+    .divider { width: 48px; height: 1px; background: #7eb8c9; margin: 0 auto 2.5rem; opacity: 0.5; }
+    p.message {
+      font-size: 1rem; line-height: 1.8;
+      color: #b8b2a8; font-weight: 300; margin-bottom: 3rem;
+    }
+    .links { display: flex; gap: 1.2rem; justify-content: center; }
+    .links a {
+      display: flex; align-items: center; gap: 0.5rem;
+      text-decoration: none; color: #e8e4dc;
+      font-size: 0.82rem; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 0.65rem 1.4rem;
+      border: 1px solid rgba(126,184,201,0.3); border-radius: 2px;
+      transition: border-color 0.3s, color 0.3s, background 0.3s;
+    }
+    .links a:hover { border-color: #7eb8c9; color: #7eb8c9; background: rgba(126,184,201,0.06); }
+    .links a svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
+    .footer { margin-top: 3.5rem; font-size: 0.7rem; color: #4a4a4a; letter-spacing: 0.1em; }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div id="app">
+    <h1>Urs Bollhalder</h1>
+    <div class="subtitle">Audio Artist &amp; Developer</div>
+    <div class="divider"></div>
+    <p class="message">
+      Something new is taking shape.<br/>
+      The site is being rebuilt — check back soon.
+    </p>
+    <div class="links">
+      <a href="https://linkedin.com/in/ursbollhaldercomposer" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.37V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.59 0 4.26 2.37 4.26 5.44v6.3zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+        LinkedIn
+      </a>
+      <a href="https://github.com/vewilya" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M12 .3C5.37.3 0 5.67 0 12.3c0 5.3 3.44 9.8 8.2 11.38.6.1.82-.26.82-.58v-2.03c-3.34.72-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.08-.74.08-.72.08-.72 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02.005 2.04.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.57 22.1 24 17.6 24 12.3 24 5.67 18.63.3 12 .3z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <div class="footer">© <span id="yr"></span> Urs Bollhalder</div>
+  </div>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let W, H, t = 0;
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const bands = [
+      { y: 0.35, color: '80,160,180', amp: 60, freq: 0.6, speed: 0.12 },
+      { y: 0.45, color: '60,120,100', amp: 50, freq: 0.8, speed: 0.09 },
+      { y: 0.55, color: '100,80,160', amp: 40, freq: 0.5, speed: 0.15 },
+    ];
+
+    function loop() {
+      requestAnimationFrame(loop);
+      ctx.clearRect(0, 0, W, H);
+      for (const b of bands) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 4) {
+          const y = b.y * H
+            + Math.sin(x * b.freq * 0.01 + t * b.speed) * b.amp
+            + Math.sin(x * 0.005 + t * 0.2) * 20;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+        const grad = ctx.createLinearGradient(0, b.y * H - b.amp, 0, b.y * H + b.amp + 80);
+        grad.addColorStop(0, `rgba(${b.color},0)`);
+        grad.addColorStop(0.4, `rgba(${b.color},0.18)`);
+        grad.addColorStop(1, `rgba(${b.color},0)`);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+      t += 0.015;
+    }
+    loop();
+  </script>
+</body>
+</html>
