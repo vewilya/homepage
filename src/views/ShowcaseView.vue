@@ -344,6 +344,7 @@ async function playVideo() {
   await nextTick()
   await loadYTApi()
   const YT = (window as unknown as Record<string, Record<string, unknown>>).YT
+  if (!YT) return
   player = new (YT.Player as unknown as new (...args: unknown[]) => YTPlayer)(playerId, {
     videoId,
     playerVars: { autoplay: 1, rel: 0, modestbranding: 1, controls: 0 },

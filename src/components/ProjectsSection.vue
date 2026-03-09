@@ -5,12 +5,12 @@ const projects = getRandomProjects(3)
 
 function youtubeThumb(url: string): string | null {
   const match = url.match(/youtube\.com\/embed\/([^?&]+)/)
-  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null
+  return match?.[1] ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null
 }
 
 function vimeoId(url: string): string | null {
   const match = url.match(/vimeo\.com\/video\/(\d+)/)
-  return match ? match[1] : null
+  return match?.[1] ?? null
 }
 </script>
 

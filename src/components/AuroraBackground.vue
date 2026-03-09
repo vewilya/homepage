@@ -34,7 +34,8 @@ onMounted(() => {
           b.y * H +
           Math.sin(x * b.freq * 0.01 + t * b.speed) * b.amp +
           Math.sin(x * 0.005 + t * 0.2) * 20
-        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        if (x === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
       }
       ctx.lineTo(W, H)
       ctx.lineTo(0, H)
