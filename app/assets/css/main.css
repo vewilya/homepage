@@ -1024,31 +1024,53 @@ body {
     padding-top: 7rem;
   }
 }
-/* phones: the header can wrap to two rows, so the cluster takes the bottom
-   corner and the footer links make room for it */
+/* phones: the sound switch sits on the name's row, a size smaller, and the
+   menu wraps underneath; the footer stacks its two lines */
 @media (max-width: 640px) {
   .corner {
-    top: auto;
-    bottom: 1.5rem;
+    top: 1.7rem;
     right: 1.25rem;
+  }
+  .corner .mode-switch--small {
+    --h: 0.95rem;
+  }
+  .corner .mode-switch--small .mode-switch__label {
+    font-size: 0.7rem;
+  }
+  .site-header {
+    padding-right: 7rem; /* the switch's room on the name's row */
+  }
+  .site-nav::before,
+  .site-footer__links::before {
+    display: none; /* the menu and the links start their own rows here */
   }
   .site-footer {
     flex-direction: column;
     align-items: center;
     gap: 0.35rem;
-    padding-right: 9rem;
     white-space: nowrap;
   }
   .site-main {
     padding-top: 7rem;
     padding-bottom: 4.5rem;
   }
-  .site-nav::before,
-  .site-footer__links::before {
-    display: none; /* the menu and the links start their own rows here */
+}
+/* small phones: the menu drops its zone numbers and closes up so all three
+   entries fit on one row, and the footer's zone box goes with them; the
+   roles take two lines, the long one first */
+@media (max-width: 480px) {
+  .site-nav {
+    gap: 0.75rem;
   }
-  .site-header {
-    padding-right: 1.25rem; /* the cluster sits at the bottom on phones */
+  .site-nav a i,
+  .zone {
+    display: none;
+  }
+  .hero__roles span:first-child {
+    flex-basis: 100%;
+  }
+  .hero__roles span:nth-child(2)::before {
+    display: none;
   }
 }
 /* Sound: the mode switch's label and a single disc the size of its track,
