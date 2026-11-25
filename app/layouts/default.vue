@@ -30,6 +30,8 @@ const year = new Date().getFullYear();
 // the "/" link prefixes every route, and a post is not a child route of the
 // index in the router's eyes, so both active states are decided by path here
 const onTransmissions = computed(() => route.path.startsWith("/thoughts"));
+// the panel number of the current page, as on the console's zone diagram
+const zone = computed(() => (isHome.value ? "01" : route.path === "/expeditions" ? "02" : "03"));
 
 const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
 </script>
@@ -63,33 +65,42 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
     <header class="site-header">
       <NuxtLink to="/" class="site-name">urs bollhalder</NuxtLink>
       <nav class="site-nav" aria-label="Primary">
-        <NuxtLink to="/" :class="{ 'is-active': isHome }">earthbound</NuxtLink>
+        <NuxtLink to="/" :class="{ 'is-active': isHome }"><i>01</i>earthbound</NuxtLink>
         <NuxtLink to="/expeditions" :class="{ 'is-active': route.path === '/expeditions' }"
-          >expeditions</NuxtLink
+          ><i>02</i>expeditions</NuxtLink
         >
-        <NuxtLink to="/thoughts" :class="{ 'is-active': onTransmissions }">transmissions</NuxtLink>
+        <NuxtLink to="/thoughts" :class="{ 'is-active': onTransmissions }"
+          ><i>03</i>transmissions</NuxtLink
+        >
       </nav>
     </header>
 
     <!-- the corner cluster, pinned to the window outside the column: the
          small mode switch (the home screen has the large one) and the sound -->
+    <!-- grouped like the console's panels: a hairline box per function with a caption on its edge -->
     <div class="corner">
       <Transition name="fade">
-        <ModeSwitch v-if="!isHome" size="small" />
+        <fieldset v-if="!isHome" class="panel-group">
+          <legend class="panel-group__caption">mode</legend>
+          <ModeSwitch size="small" />
+        </fieldset>
       </Transition>
-      <!-- a single disc in the mode switch's style: hollow when off, the accent disc when on -->
-      <button
-        type="button"
-        class="mode-switch mode-switch--small sound-toggle"
-        :class="{ 'is-on': sound }"
-        role="switch"
-        :aria-checked="sound"
-        aria-label="Sound"
-        @click="toggleSound"
-      >
-        <span class="mode-switch__label">sound</span>
-        <span class="sound-toggle__disc" aria-hidden="true" />
-      </button>
+      <fieldset class="panel-group">
+        <legend class="panel-group__caption">audio</legend>
+        <!-- an event light: a small square that lights when sound is on -->
+        <button
+          type="button"
+          class="mode-switch mode-switch--small sound-toggle"
+          :class="{ 'is-on': sound }"
+          role="switch"
+          :aria-checked="sound"
+          aria-label="Sound"
+          @click="toggleSound"
+        >
+          <span class="mode-switch__label">sound</span>
+          <span class="sound-toggle__disc" aria-hidden="true" />
+        </button>
+      </fieldset>
     </div>
 
     <main class="site-main">
@@ -97,7 +108,7 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
     </main>
 
     <footer class="site-footer">
-      <span>© {{ year }} urs bollhalder</span>
+      <span><b class="zone">{{ zone }}</b>© {{ year }} urs bollhalder</span>
       <span class="site-footer__links">
         <a href="https://github.com/vewilya" rel="noopener">github</a>
         <a href="https://linkedin.com/in/ursbollhaldercomposer" rel="noopener">linkedin</a>

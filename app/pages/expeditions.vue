@@ -17,11 +17,17 @@ const host = (url: string) => new URL(url).hostname.replace(/^www\./, "");
     <h1 class="page-title">expeditions</h1>
     <ul class="projects">
       <li v-for="p in projects" :key="p.path" class="project">
-        <a v-if="p.image" :href="p.link" rel="noopener" class="project__image">
-          <img :src="asset(p.image)" :alt="p.title" loading="lazy" />
-        </a>
+        <figure v-if="p.image" class="project__figure">
+          <a :href="p.link" rel="noopener" class="project__image">
+            <img :src="asset(p.image)" :alt="p.title" loading="lazy" />
+          </a>
+          <figcaption class="project__caption">P-{{ String(p.order).padStart(2, "0") }}</figcaption>
+        </figure>
         <div class="project__body">
           <h2 class="project__title">
+            <span v-if="!p.image" class="project__caption"
+              >P-{{ String(p.order).padStart(2, "0") }}</span
+            >
             <a :href="p.link" rel="noopener">{{ p.title }}</a>
             <span v-if="p.year" class="project__year">{{ p.year }}</span>
           </h2>
