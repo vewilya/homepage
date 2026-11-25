@@ -9,7 +9,7 @@ const asset = (path: string) => baseURL + path;
 // One picture per kind of page and per mode. Both layers are always in the
 // DOM; the stylesheet fades the current mode's layer in and the other out.
 const PICTURES = {
-  home: { dark: "twin-moons", light: "retro-astronaut" },
+  home: { dark: "twin-moons", light: "moonlit-astronaut" },
   thoughts: { dark: "rocket-snowy-peaks", light: "retro-rocket" },
   inner: { dark: "galactic-mountains", light: "starlit-planets" },
 } as const;
@@ -77,16 +77,10 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
 
     <!-- the corner cluster, pinned to the window outside the column: the
          small mode switch (the home screen has the large one) and the sound -->
-    <!-- grouped like the console's panels: a hairline box per function with a caption on its edge -->
+    <!-- the corner: the sound control in a panel frame. The mode is switched
+         on the home screen only. -->
     <div class="corner">
-      <Transition name="fade">
-        <fieldset v-if="!isHome" class="panel-group">
-          <legend class="panel-group__caption">mode</legend>
-          <ModeSwitch size="small" />
-        </fieldset>
-      </Transition>
-      <fieldset class="panel-group">
-        <legend class="panel-group__caption">audio</legend>
+      <div class="panel-group">
         <!-- an event light: a small square that lights when sound is on -->
         <button
           type="button"
@@ -100,7 +94,7 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
           <span class="mode-switch__label">sound</span>
           <span class="sound-toggle__disc" aria-hidden="true" />
         </button>
-      </fieldset>
+      </div>
     </div>
 
     <main class="site-main">
@@ -108,10 +102,10 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
     </main>
 
     <footer class="site-footer">
-      <span><b class="zone">{{ zone }}</b>© {{ year }} urs bollhalder</span>
+      <span><b class="zone">{{ zone }}</b>© {{ year }} by Urs Bollhalder</span>
       <span class="site-footer__links">
-        <a href="https://github.com/vewilya" rel="noopener">github</a>
-        <a href="https://linkedin.com/in/ursbollhaldercomposer" rel="noopener">linkedin</a>
+        <a href="https://linkedin.com/in/ursbollhaldercomposer" rel="noopener">LinkedIn</a>
+        <a href="https://github.com/vewilya" rel="noopener">Github</a>
       </span>
     </footer>
   </div>

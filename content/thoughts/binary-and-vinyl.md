@@ -1,5 +1,5 @@
 ---
-title: Binary and vinyl
+title: Binary and Vinyl
 date: 2026-11-25
 location: Lucerne
 description: Where I come from, and why this site sits between a record collection and a compiler.

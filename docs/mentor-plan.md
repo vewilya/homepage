@@ -33,7 +33,7 @@ Assets (encoded copies in `public/`, masters in the gitignored `images/`
 and `audio/` folders):
 
 - Pictures, one per page kind and mode, crossfaded on a switch:
-  - home: dark `twin-moons`, light `retro-astronaut`
+  - home: dark `twin-moons`, light `moonlit-astronaut`
   - thoughts index: dark `rocket-snowy-peaks`, light `retro-rocket`
   - posts and other pages: dark `galactic-mountains`, light `starlit-planets`
 - Dark track: `audio/pitch-black.m4a`, loops; fades to silence at both ends,

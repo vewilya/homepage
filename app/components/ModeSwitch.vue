@@ -7,7 +7,8 @@
  * by state, so the prerendered page already shows the right side before any
  * JavaScript runs. Only the aria state waits for hydration.
  *
- * `size`: "large" for the home screen, "small" for the header.
+ * `size`: "large" for the home screen, where the switch lives; "small" is
+ * kept for a compact variant should one be needed again.
  */
 withDefaults(defineProps<{ size?: "large" | "small" }>(), { size: "large" });
 

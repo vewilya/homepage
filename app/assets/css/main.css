@@ -1,6 +1,7 @@
 /* The colour variables are registered as real colours, so the browser can
-   interpolate them: a mode switch then eases every colour everywhere, the
-   header gradient and colour-mixed labels included, over --mode-fade. */
+   interpolate them. Ink colours (text, lines, glass) cut over --ink-fade so
+   type never sits in a muddy in-between; only the veil (--scrim) blends over
+   --mode-fade with the pictures. */
 @property --bg {
   syntax: "<color>";
   inherits: true;
@@ -14,7 +15,7 @@
 @property --muted {
   syntax: "<color>";
   inherits: true;
-  initial-value: #3e4c5a;
+  initial-value: #2e3b48;
 }
 @property --accent {
   syntax: "<color>";
@@ -48,7 +49,7 @@
 /* Palette taken from the backgrounds: navy sky, cream paper, orange sun.
    Light is the default, dark follows the system or the data-theme switch
    on <html>. Each mode has its own picture layer; a switch crossfades the
-   layers, the veil and the colours over --mode-fade. */
+   layers and the veil over --mode-fade; the ink colours cut over --ink-fade. */
 :root {
   --font-body: Inter, "Helvetica Neue", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -56,7 +57,7 @@
 
   --bg: #efe4d0;
   --text: #16293b;
-  --muted: #3e4c5a; /* dark enough to read over the veiled picture */
+  --muted: #2e3b48; /* deep enough to read over the picture */
   --accent: #c9461f;
   --line: rgba(29, 52, 73, 0.22);
   --code-bg: rgba(29, 52, 73, 0.06);
@@ -64,16 +65,17 @@
   --layer-dark: 0;
   --scrim: rgba(239, 228, 208, 0.34); /* a thin cream veil, the picture's colour leads */
   --mode-fade: 8s;
+  --ink-fade: 0.4s; /* text, lines and glass: a quick cut, no long colour blend */
   --shiki-theme: var(--shiki-light);
   --shiki-theme-bg: var(--shiki-light-bg);
   color-scheme: light;
   transition:
-    --bg var(--mode-fade) ease,
-    --text var(--mode-fade) ease,
-    --muted var(--mode-fade) ease,
-    --accent var(--mode-fade) ease,
-    --line var(--mode-fade) ease,
-    --code-bg var(--mode-fade) ease,
+    --bg var(--ink-fade) ease,
+    --text var(--ink-fade) ease,
+    --muted var(--ink-fade) ease,
+    --accent var(--ink-fade) ease,
+    --line var(--ink-fade) ease,
+    --code-bg var(--ink-fade) ease,
     --scrim var(--mode-fade) ease;
 }
 
@@ -81,7 +83,7 @@
   :root:not([data-theme="light"]) {
     --bg: #121e2c;
     --text: #efe6d6;
-    --muted: #a3b0bd;
+    --muted: #bcc6d0;
     --accent: #ef6a3c;
     --line: rgba(239, 230, 214, 0.18);
     --code-bg: rgba(239, 230, 214, 0.08);
@@ -96,7 +98,7 @@
 :root[data-theme="dark"] {
   --bg: #121e2c;
   --text: #efe6d6;
-  --muted: #a3b0bd;
+  --muted: #bcc6d0;
   --accent: #ef6a3c;
   --line: rgba(239, 230, 214, 0.18);
   --code-bg: rgba(239, 230, 214, 0.08);
@@ -165,7 +167,7 @@ a:hover {
   inset: 0;
   z-index: -1;
   background: var(--bg);
-  transition: background-color var(--mode-fade) ease;
+  transition: background-color var(--ink-fade) ease;
 }
 .site-bg__layer {
   position: absolute;
@@ -238,7 +240,7 @@ a:hover {
   stroke-width: 1;
   stroke-opacity: 0.32;
   vector-effect: non-scaling-stroke;
-  transition: stroke var(--mode-fade) ease;
+  transition: stroke var(--ink-fade) ease;
 }
 .decor__line--faint {
   stroke-opacity: 0.18;
@@ -250,7 +252,7 @@ a:hover {
 .decor__orb {
   fill: var(--text);
   fill-opacity: 0.7;
-  transition: fill var(--mode-fade) ease;
+  transition: fill var(--ink-fade) ease;
 }
 .decor__orb--accent {
   fill: var(--accent);
@@ -259,7 +261,7 @@ a:hover {
 .decor__square {
   fill: var(--text);
   fill-opacity: 0.55;
-  transition: fill var(--mode-fade) ease;
+  transition: fill var(--ink-fade) ease;
 }
 .decor__square--accent {
   fill: var(--accent);
@@ -271,7 +273,7 @@ a:hover {
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.08em;
-  transition: fill var(--mode-fade) ease;
+  transition: fill var(--ink-fade) ease;
 }
 .decor__text--readout {
   font-size: 10px;
@@ -317,12 +319,13 @@ a:hover {
 }
 body {
   transition:
-    background-color var(--mode-fade) ease,
-    color var(--mode-fade) ease;
+    background-color var(--ink-fade) ease,
+    color var(--ink-fade) ease;
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
     --mode-fade: 0s;
+    --ink-fade: 0s;
   }
   .site {
     transition: none;
@@ -365,24 +368,6 @@ body {
   font-size: 0.85rem;
   letter-spacing: 0.04em;
   pointer-events: none; /* the fade must not block the page beneath */
-}
-/* the fade: taller than the header itself, so the band dissolves slowly
-   instead of stopping at the menu's baseline */
-.site-header::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: -6rem;
-  z-index: -1;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--bg) 78%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 55%, transparent) 40%,
-    color-mix(in srgb, var(--bg) 20%, transparent) 75%,
-    transparent 100%
-  );
 }
 .site-header > * {
   pointer-events: auto;
@@ -493,8 +478,8 @@ body {
   font-weight: 400;
   color: var(--text);
   transition:
-    border-color var(--mode-fade) ease,
-    color var(--mode-fade) ease;
+    border-color var(--ink-fade) ease,
+    color var(--ink-fade) ease;
 }
 
 /* fixed to the bottom, mirror of the header */
@@ -505,45 +490,49 @@ body {
   right: 0;
   z-index: 2;
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center; /* one centred cluster: notice, hairline, links */
+  align-items: baseline;
+  gap: 1.5rem;
   padding: 1.25rem max(1.25rem, calc((100% - 44rem) / 2)) 1.25rem;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--muted);
   pointer-events: none;
-}
-.site-footer::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: -5rem;
-  z-index: -1;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--bg) 78%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 50%, transparent) 45%,
-    transparent 100%
-  );
 }
 .site-footer > * {
   pointer-events: auto;
 }
 .site-footer__links {
   display: flex;
-  gap: 1.25rem;
+  align-items: baseline;
+  gap: 1.1rem;
+}
+.site-footer__links::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  margin-right: 0.25rem;
+  background: var(--line);
+  align-self: center;
 }
 .site-footer a {
   text-decoration: none;
 }
 
 /* Home: one screen, text centred in the empty sky */
+/* The block sits in the open sky of the pictures: raised rather than
+   centred, so it clears the peaks below, and a touch left of centre on
+   wide screens. */
 .hero {
-  align-self: center;
+  align-self: start;
   text-align: center;
-  padding: 0 0 4vh;
+  padding: 6vh 0 2vh;
+}
+@media (min-width: 1100px) {
+  .hero {
+    transform: translateX(-1.5vw);
+  }
 }
 /* short windows: tighten the hero so it still fits without scrolling */
 @media (max-height: 720px) {
@@ -564,24 +553,34 @@ body {
   margin: 0 0 1.25rem;
   font-family: var(--font-title);
   font-size: clamp(2.4rem, 7vw, 4.25rem);
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.05;
 }
+/* the title line: one line, a step up from the dek, tight under the name */
 .hero__tagline {
-  max-width: 36rem;
-  margin: 0 auto 1.75rem;
+  margin: 0 auto 0.6rem;
   font-family: var(--font-title);
-  font-size: clamp(1.1rem, 2.3vw, 1.4rem);
-  font-weight: 300;
-  line-height: 1.45;
+  font-size: clamp(1.25rem, 2.6vw, 1.65rem);
+  font-weight: 400;
+  line-height: 1.3;
   letter-spacing: 0.005em;
+}
+/* the dek: the explanation, smaller and quieter, its two lines balanced */
+.hero__dek {
+  max-width: 30rem;
+  margin: 0 auto 1.5rem;
+  font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--muted);
+  text-wrap: balance;
 }
 .hero__roles {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  margin: 0 0 2.25rem;
+  margin: 0 0 1.6rem;
   font-family: var(--font-mono);
   font-size: 0.8rem;
   letter-spacing: 0.12em;
@@ -600,7 +599,7 @@ body {
   display: flex;
   justify-content: center;
   gap: 0.75rem;
-  margin: 0 0 3rem;
+  margin: 0 0 2.2rem;
 }
 .hero__links a {
   padding: 0.55rem 1.4rem;
@@ -625,6 +624,24 @@ body {
   color: var(--muted);
 }
 
+/* Every control stands on the same glass as the panels: the page colour at
+   70 percent with a light blur, so no button or toggle lets the picture
+   through unfiltered. */
+.hero__links a,
+.mode-switch__track,
+.sound-toggle__disc,
+.panel-group,
+.zone {
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* the sound light when off: flat page colour, so a warm picture behind it
+   cannot make it look lit */
+.sound-toggle__disc {
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+
 /* Reading pages: a cover glass over the column. A light blur and a faint
    tint of the page colour, a hairline edge, no shine: the dots and the
    picture stay present behind the text without pulling at the eye. */
@@ -636,12 +653,12 @@ body {
   padding: 1.75rem 2.25rem 2.25rem;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg) 58%, transparent);
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
   backdrop-filter: blur(14px) saturate(1.05);
   -webkit-backdrop-filter: blur(14px) saturate(1.05);
   transition:
-    background var(--mode-fade) ease,
-    border-color var(--mode-fade) ease;
+    background var(--ink-fade) ease,
+    border-color var(--ink-fade) ease;
 }
 .panel .page-title {
   margin-top: 0.25rem;
@@ -657,7 +674,7 @@ body {
   margin: 1.5rem 0 1.5rem;
   font-family: var(--font-title);
   font-size: clamp(1.8rem, 4vw, 2.4rem);
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.15;
   letter-spacing: 0;
 }
@@ -808,7 +825,7 @@ body {
 }
 .project__year {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 400;
   color: var(--muted);
 }
@@ -824,15 +841,17 @@ body {
   gap: 0.75rem;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 .project__links {
   margin-top: 0.4rem;
 }
 .project__links a {
-  text-decoration: none;
-  color: var(--accent);
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.2em;
 }
 @media (max-width: 560px) {
   .project {
@@ -968,32 +987,17 @@ body {
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 0.3rem 0.8rem 0.5rem;
+  padding: 0.45rem 0.8rem;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 3px;
-  transition: border-color var(--mode-fade) ease;
-}
-/* a legend breaks the box's line by itself, as a printed panel label does */
-.panel-group__caption {
-  padding: 0 0.3rem;
-  margin-left: -0.3rem;
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  line-height: 1;
-  transition: color var(--mode-fade) ease;
+  transition: border-color var(--ink-fade) ease;
 }
 /* phones: the groups lose their frames and captions and fit the corner as before */
 @media (max-width: 640px) {
   .panel-group {
     padding: 0;
     border: 0;
-  }
-  .panel-group__caption {
-    display: none;
   }
 }
 
@@ -1023,7 +1027,7 @@ body {
   }
   .site-footer {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.35rem;
     padding-right: 9rem;
     white-space: nowrap;
@@ -1032,8 +1036,9 @@ body {
     padding-top: 7rem;
     padding-bottom: 4.5rem;
   }
-  .site-nav::before {
-    display: none; /* the menu starts its own row here */
+  .site-nav::before,
+  .site-footer__links::before {
+    display: none; /* the menu and the links start their own rows here */
   }
   .site-header {
     padding-right: 1.25rem; /* the cluster sits at the bottom on phones */
@@ -1052,7 +1057,6 @@ body {
   height: var(--h);
   border-radius: 3px; /* an event light: a small square, not a knob */
   border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--text) 8%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent);
   transition:
     background 0.25s ease,
@@ -1108,10 +1112,10 @@ body {
   font-size: calc(var(--h) * 0.24);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  transition: color var(--mode-fade) ease;
+  transition: color var(--ink-fade) ease;
 }
 .mode-switch--small .mode-switch__label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   letter-spacing: 0.08em;
 }
 /* day lights the left label, night the right one */
@@ -1128,11 +1132,10 @@ body {
   height: var(--h);
   border-radius: var(--h);
   border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--text) 8%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent);
   transition:
-    border-color var(--mode-fade) ease,
-    background var(--mode-fade) ease;
+    border-color var(--ink-fade) ease,
+    background var(--ink-fade) ease;
 }
 .mode-switch:hover .mode-switch__track {
   border-color: var(--accent);
@@ -1175,8 +1178,8 @@ body {
   transform: translate(calc(var(--layer-dark) * (var(--h) * (2.3 - 1))), -50%);
   transition:
     transform 0.7s cubic-bezier(0.65, 0, 0.35, 1),
-    background var(--mode-fade) ease,
-    box-shadow var(--mode-fade) ease;
+    background var(--ink-fade) ease,
+    box-shadow var(--ink-fade) ease;
 }
 /* the moon: a second disc that slides over the sun as night comes */
 .mode-switch__knob::after {
@@ -1200,5 +1203,5 @@ body {
 
 /* Hero placement: sits between tagline and roles */
 .hero__switch {
-  margin: 0 0 2.25rem;
+  margin: 0 0 1.3rem;
 }
