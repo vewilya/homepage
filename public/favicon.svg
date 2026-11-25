@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#1d3449"/>
-  <circle cx="22" cy="30" r="16" fill="#d8532b"/>
-  <path d="M4 56 L26 30 L38 44 L46 36 L60 56 Z" fill="#e9e1d1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- "ub" in Space Grotesk 500, outlined so no font is needed, and the accent dot -->
+  <rect width="32" height="32" rx="7" fill="#121e2c"/>
+  <g fill="#efe4d0" transform="translate(2.837 22) scale(0.0165 -0.0165)"><path d="M265 -9Q209 -9 165 16Q121 41 96 87Q71 133 71 197L71 493L174 493L174 204Q174 140 206 109.5Q238 79 295 79Q358 79 396.5 121.5Q435 164 435 244L435 493L538 493L538 0L437 0L437 74L421 74Q407 44 371 17.5Q335 -9 265 -9Z"/><path transform="translate(584 0)" d="M361 -14Q289 -14 250.5 12Q212 38 193 70L177 70L177 0L76 0L76 700L179 700L179 426L195 426Q207 446 227 464.5Q247 483 280 495Q313 507 361 507Q423 507 475 477Q527 447 558 390Q589 333 589 254L589 239Q589 159 557.5 102.5Q526 46 474.5 16Q423 -14 361 -14ZM331 76Q398 76 441.5 119Q485 162 485 242L485 251Q485 330 442 373Q399 416 331 416Q265 416 221.5 373Q178 330 178 251L178 242Q178 162 221.5 119Q265 76 331 76Z"/></g><circle cx="25.89" cy="19.90" r="2.1" fill="#ef6a3c"/>
 </svg>
