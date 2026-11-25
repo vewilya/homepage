@@ -12,7 +12,7 @@
  *   eased towards on the same curve and over the same 8s as the pictures'
  *   crossfade, so the dots recolour in step with everything behind them.
  */
-import type { Effect, Frame, Pointer } from "~/utils/sky/types";
+import { LATTICE, type Effect, type Frame, type Pointer } from "~/utils/sky/types";
 import { createDotGrid } from "~/utils/sky/dotGrid";
 import { createGameOfLife } from "~/utils/sky/gameOfLife";
 
@@ -105,10 +105,21 @@ onMounted(() => {
     ctx.clearRect(0, 0, width, height);
   };
 
+  // while the pointer is pressed, it keeps seeding as it moves: a new seed
+  // every DRAG_STEP px, so a drag draws a trail of colonies
+  const DRAG_STEP = LATTICE.spacing * 2;
+  let pressed = false;
+  let lastSeed = { x: 0, y: 0 };
+  const seed = (x: number, y: number) => {
+    if (pointer.clicks.length < 16) pointer.clicks.push({ x, y });
+    lastSeed = { x, y };
+  };
   const onMove = (e: PointerEvent) => {
     pointer.x = e.clientX;
     pointer.y = e.clientY;
     pointer.active = true;
+    if (pressed && Math.hypot(e.clientX - lastSeed.x, e.clientY - lastSeed.y) >= DRAG_STEP)
+      seed(e.clientX, e.clientY);
   };
   const onLeave = () => (pointer.active = false);
   const onDown = (e: PointerEvent) => {
@@ -117,8 +128,10 @@ onMounted(() => {
       (e.target as Element | null)?.closest("a, button, input, select, textarea, [role='switch']")
     )
       return;
-    if (pointer.clicks.length < 16) pointer.clicks.push({ x: e.clientX, y: e.clientY });
+    pressed = true;
+    seed(e.clientX, e.clientY);
   };
+  const onUp = () => (pressed = false);
 
   // dev only: lets a browser session read what the loop is doing
   const stats = {
@@ -137,6 +150,8 @@ onMounted(() => {
   addEventListener("resize", resize);
   addEventListener("pointermove", onMove, { passive: true });
   addEventListener("pointerdown", onDown, { passive: true });
+  addEventListener("pointerup", onUp, { passive: true });
+  addEventListener("pointercancel", onUp, { passive: true });
   document.addEventListener("pointerleave", onLeave);
   reduced.addEventListener("change", () => (reduced.matches ? stop() : start()));
 
@@ -145,6 +160,8 @@ onMounted(() => {
     removeEventListener("resize", resize);
     removeEventListener("pointermove", onMove);
     removeEventListener("pointerdown", onDown);
+    removeEventListener("pointerup", onUp);
+    removeEventListener("pointercancel", onUp);
     document.removeEventListener("pointerleave", onLeave);
   });
 });

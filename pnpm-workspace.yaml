@@ -5,3 +5,6 @@ catalog:
   vite-plus: 1.7.0
 overrides:
   vite@*: "catalog:"
+# A version must be at least a week old (minutes) before pnpm will pick it:
+# a hijacked release is usually pulled within hours, long before that.
+minimumReleaseAge: 10080

@@ -33,7 +33,17 @@ const onTransmissions = computed(() => route.path.startsWith("/thoughts"));
 // the panel number of the current page, as on the console's zone diagram
 const zone = computed(() => (isHome.value ? "01" : route.path === "/expeditions" ? "02" : "03"));
 
-const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
+const {
+  enabled: sound,
+  pending: soundPending,
+  nowPlaying,
+  artist,
+  toggle: toggleSound,
+} = useAmbientAudio();
+// the radio display's line: what plays, or what the visitor has to do first
+const radioLine = computed(() =>
+  soundPending.value ? "touch to start" : nowPlaying.value ? `${nowPlaying.value} · ${artist}` : "",
+);
 </script>
 
 <template>
@@ -83,11 +93,21 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
          on the home screen only. -->
     <div class="corner">
       <div class="panel-group">
+        <!-- the radio display: a narrow window scrolling the current track,
+             like a car radio; dark while sound is off -->
+        <Transition name="fade">
+          <span v-if="radioLine" class="radio" aria-live="polite">
+            <span class="radio__tape" :class="{ 'is-still': soundPending }">
+              <span class="radio__text">{{ radioLine }}</span>
+              <span class="radio__text" aria-hidden="true">{{ radioLine }}</span>
+            </span>
+          </span>
+        </Transition>
         <!-- an event light: a small square that lights when sound is on -->
         <button
           type="button"
           class="mode-switch mode-switch--small sound-toggle"
-          :class="{ 'is-on': sound }"
+          :class="{ 'is-on': sound, 'is-armed': soundPending }"
           role="switch"
           :aria-checked="sound"
           aria-label="Sound"

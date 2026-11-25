@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     "@fontsource/jetbrains-mono/400.css",
     "@fontsource/space-grotesk/300.css",
     "@fontsource/space-grotesk/500.css",
+    "@fontsource/space-grotesk/700.css",
     "~/assets/css/main.css",
   ],
   app: {

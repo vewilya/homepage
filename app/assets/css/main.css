@@ -1000,11 +1000,10 @@ body {
   border-radius: 3px;
   transition: border-color var(--ink-fade) ease;
 }
-/* phones: the groups lose their frames and captions and fit the corner as before */
+/* phones: a slimmer frame, a little air around the label and no more */
 @media (max-width: 640px) {
   .panel-group {
-    padding: 0;
-    border: 0;
+    padding: 0.18rem 0.45rem;
   }
 }
 
@@ -1028,8 +1027,13 @@ body {
    menu wraps underneath; the footer stacks its two lines */
 @media (max-width: 640px) {
   .corner {
-    top: 1.7rem;
+    top: 1.55rem; /* the framed switch centred on the name */
     right: 1.25rem;
+  }
+  .site-name {
+    font-size: 1.1rem;
+    font-weight: 700; /* the name carries the row here, against the switch */
+    color: var(--text);
   }
   .corner .mode-switch--small {
     --h: 0.95rem;
@@ -1038,7 +1042,11 @@ body {
     font-size: 0.7rem;
   }
   .site-header {
-    padding-right: 7rem; /* the switch's room on the name's row */
+    padding-right: 13.5rem; /* the display's and the switch's room on the name's row */
+  }
+  .panel-group .radio {
+    width: 5.5rem; /* outweighs the base rule, which comes later in the file */
+    margin-right: 0.6rem;
   }
   .site-nav::before,
   .site-footer__links::before {
@@ -1073,6 +1081,46 @@ body {
     display: none;
   }
 }
+/* The radio display: a narrow window in the panel, the current track
+   scrolling through it like the text on a car radio. The tape holds the
+   line twice and slides by half its width, so the loop never jumps. */
+.radio {
+  display: block;
+  width: 9rem;
+  margin-right: 1rem;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+.radio__tape {
+  display: inline-block;
+  animation: radio-scroll 16s linear infinite;
+}
+.radio__tape.is-still {
+  animation: none; /* the prompt just sits there */
+  padding-left: 0.5rem;
+}
+.radio__text {
+  display: inline-block;
+  padding-right: 3em; /* the gap between one pass and the next */
+}
+@keyframes radio-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .radio__tape {
+    animation: none;
+  }
+}
 /* Sound: the mode switch's label and a single disc the size of its track,
    no travel. Off: a hollow ring. On: the accent disc, breathing. */
 .sound-toggle .mode-switch__label {
@@ -1092,8 +1140,16 @@ body {
     border-color 0.25s ease,
     box-shadow 0.25s ease;
 }
-.sound-toggle:hover .sound-toggle__disc {
+.sound-toggle:hover .sound-toggle__disc,
+.sound-toggle.is-armed .sound-toggle__disc {
   border-color: var(--accent);
+}
+/* armed: on, but the browser waits for a first touch; a hollow ring that
+   breathes until then */
+.sound-toggle.is-armed .sound-toggle__disc {
+  background: transparent;
+  box-shadow: none;
+  animation: sound-pulse 2.4s ease-in-out infinite;
 }
 .sound-toggle.is-on .sound-toggle__disc {
   background: var(--accent);

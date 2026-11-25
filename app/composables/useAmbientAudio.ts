@@ -1,9 +1,13 @@
 /**
  * Ambient music, one playlist per colour mode.
  *
- * - Off until the visitor switches it on: browsers refuse to start sound
- *   without a click. The choice is remembered; on the next visit we try to
- *   resume and fall back to "off" if the browser says no.
+ * - On by default, unless the visitor has switched it off (remembered). Most
+ *   browsers refuse to start sound before the visitor has touched the page,
+ *   so when playback is blocked the control shows as armed and the first
+ *   tap, click or key anywhere starts the music.
+ * - While playing, the Media Session carries the track's name and the site
+ *   icon, so lock screens and system players show something sensible, and
+ *   their play/pause buttons drive the same switch.
  * - Dark loops Pitch Black. Light plays the City Sundown intro once, then
  *   its loop, handed over on the intro's `ended` event.
  * - A mode switch is a real crossfade: both tracks sound at once for
@@ -33,12 +37,15 @@ const PLAYLISTS: Record<Mode, { src: string; loop: boolean }[]> = {
     { src: "/audio/city-sundown-loop.m4a", loop: true },
   ],
 };
+const TITLES: Record<Mode, string> = { dark: "Pitch Black", light: "City Sundown" };
+const ARTIST = "Urs Bollhalder";
 
 // Module state: one player for the whole site, whichever component asks.
 let players: Record<Mode, HTMLAudioElement[]> | undefined;
 let active: Record<Mode, HTMLAudioElement> | undefined; // where each mode resumes
 let current: HTMLAudioElement | undefined;
 let watching = false;
+let armed = false; // waiting for the first gesture because autoplay was blocked
 // Every transition bumps this; a step that awaited something checks it is
 // still the latest before touching anything, so quick toggles cannot interleave.
 let session = 0;
@@ -181,6 +188,9 @@ const stop = async (ms: number) => {
 export const useAmbientAudio = () => {
   // shared between every caller, and safe to read during SSR
   const enabled = useState("ambient-sound", () => false);
+  // on, but silent until the visitor's first gesture (autoplay was blocked)
+  const pending = useState("ambient-sound-pending", () => false);
+  const nowPlaying = useState<string>("ambient-sound-track", () => ""); // for the radio display
   const base = useRuntimeConfig().app.baseURL.replace(/\/+$/, "");
 
   const resumePoint = () => {
@@ -188,21 +198,64 @@ export const useAmbientAudio = () => {
     return active![readMode()];
   };
 
+  /** What lock screens and system players show while the music plays. */
+  const announce = (mode: Mode) => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: TITLES[mode],
+      artist: ARTIST,
+      album: "ursbollhalder.com",
+      artwork: [
+        { src: `${base}/icon-512.png`, sizes: "512x512", type: "image/png" },
+        { src: `${base}/icon-1024.png`, sizes: "1024x1024", type: "image/png" },
+      ],
+    });
+    navigator.mediaSession.playbackState = "playing";
+  };
+
   const switchOn = async (ms = TOGGLE_FADE_MS) => {
     enabled.value = true; // the button answers at once, not after the fade
+    const mode = readMode();
     try {
       await transition(resumePoint(), ms);
+      pending.value = false;
+      nowPlaying.value = TITLES[mode];
+      announce(mode);
       localStorage.setItem(STORAGE_KEY, "on");
     } catch {
-      enabled.value = false; // autoplay blocked: wait for a click
+      // autoplay blocked: stay on, and let the first gesture anywhere start it
       current = undefined;
+      pending.value = true;
+      arm();
     }
   };
 
   const switchOff = async () => {
     enabled.value = false;
+    pending.value = false;
+    nowPlaying.value = "";
     localStorage.setItem(STORAGE_KEY, "off");
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
     await stop(TOGGLE_FADE_MS);
+  };
+
+  // The first gesture anywhere retries. A click on the sound control itself
+  // is left to the control: an armed light clicked means "no, thanks".
+  const GESTURES = ["pointerdown", "keydown", "touchend"] as const;
+  const onGesture = (e: Event) => {
+    if ((e.target as Element | null)?.closest?.(".sound-toggle")) return;
+    disarm();
+    if (enabled.value) void switchOn();
+  };
+  const arm = () => {
+    if (armed) return;
+    armed = true;
+    for (const type of GESTURES) addEventListener(type, onGesture, { passive: true });
+  };
+  const disarm = () => {
+    if (!armed) return;
+    armed = false;
+    for (const type of GESTURES) removeEventListener(type, onGesture);
   };
 
   const toggle = () => (enabled.value ? switchOff() : switchOn());
@@ -220,12 +273,18 @@ export const useAmbientAudio = () => {
       attributeFilter: ["data-theme"],
     });
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", onModeChange);
-    try {
-      if (localStorage.getItem(STORAGE_KEY) === "on") void switchOn();
-    } catch {
-      /* storage blocked: start silent */
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.setActionHandler("play", () => void switchOn());
+      navigator.mediaSession.setActionHandler("pause", () => void switchOff());
     }
+    let wanted = true; // on by default
+    try {
+      wanted = localStorage.getItem(STORAGE_KEY) !== "off";
+    } catch {
+      /* storage blocked: treat as a first visit */
+    }
+    if (wanted) void switchOn();
   });
 
-  return { enabled, toggle };
+  return { enabled, pending, nowPlaying, toggle, artist: ARTIST };
 };
