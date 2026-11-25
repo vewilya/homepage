@@ -1,0 +1,408 @@
+/* Palette taken from the backgrounds: navy sky, cream paper, orange sun.
+   Light is the default, dark follows the system or a later data-theme
+   switch on <html> (assignment 10). */
+:root {
+  --font-body: Inter, "Helvetica Neue", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --bg: #efe4d0;
+  --text: #1d3449;
+  --muted: #5e6873;
+  --accent: #c9461f;
+  --line: rgba(29, 52, 73, 0.16);
+  --code-bg: rgba(29, 52, 73, 0.06);
+  --bg-opacity: 0; /* the picture stays hidden in light mode */
+  --scrim: transparent;
+  --shiki-theme: var(--shiki-light);
+  --shiki-theme-bg: var(--shiki-light-bg);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d3449;
+    --text: #efe6d6;
+    --muted: #a7b4c0;
+    --accent: #ef6a3c;
+    --line: rgba(239, 230, 214, 0.18);
+    --code-bg: rgba(239, 230, 214, 0.08);
+    --bg-opacity: 1;
+    --scrim: rgba(23, 44, 64, 0.5);
+    --shiki-theme: var(--shiki-default);
+    --shiki-theme-bg: var(--shiki-default-bg);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1d3449;
+  --text: #efe6d6;
+  --muted: #a7b4c0;
+  --accent: #ef6a3c;
+  --line: rgba(239, 230, 214, 0.18);
+  --code-bg: rgba(239, 230, 214, 0.08);
+  --bg-opacity: 1;
+  --scrim: rgba(23, 44, 64, 0.5);
+  --shiki-theme: var(--shiki-default);
+  --shiki-theme-bg: var(--shiki-default-bg);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 17px/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 0.18em;
+  transition:
+    text-decoration-color 0.2s,
+    color 0.2s;
+}
+a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
+/* Page frame: header, main, footer in one column over the fixed picture */
+.site {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg) center / cover no-repeat;
+  opacity: var(--bg-opacity);
+  transition: opacity 0.6s ease;
+}
+/* a dark veil so type stays readable; stronger on reading pages */
+.site-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+}
+.site--inner .site-bg::after {
+  background: linear-gradient(to bottom, var(--scrim), var(--bg) 90%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-bg,
+  a {
+    transition: none;
+  }
+}
+
+.site-header,
+.site-main,
+.site-footer {
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+.site-name,
+.site-nav a {
+  text-decoration: none;
+}
+.site-nav a.router-link-active {
+  color: var(--accent);
+}
+
+.site-main {
+  flex: 1;
+  padding-bottom: 4rem;
+}
+
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.site-footer__links {
+  display: flex;
+  gap: 1.25rem;
+}
+.site-footer a {
+  text-decoration: none;
+}
+
+/* Home: one screen, text centred in the empty sky */
+.site--home .site-main {
+  display: flex;
+  align-items: center;
+}
+.hero {
+  width: 100%;
+  text-align: center;
+  padding: 10vh 0 14vh;
+}
+.hero__name {
+  margin: 0 0 1.25rem;
+  font-size: clamp(2.4rem, 7vw, 4.25rem);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+.hero__tagline {
+  max-width: 34rem;
+  margin: 0 auto 1.75rem;
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  font-weight: 300;
+  line-height: 1.5;
+}
+.hero__roles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0 0 2.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hero__roles span {
+  white-space: nowrap;
+}
+.hero__roles span + span::before {
+  content: "|";
+  margin: 0 0.9em;
+  opacity: 0.5;
+}
+.hero__links {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0 0 3rem;
+}
+.hero__links a {
+  padding: 0.55rem 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+.hero__links a:hover {
+  border-color: var(--accent);
+}
+.hero__latest {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Inner pages */
+.page-title {
+  margin: 1.5rem 0 1.5rem;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+.post__header .page-title {
+  margin-bottom: 0.5rem;
+}
+.post__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 2.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.tag::before {
+  content: "#";
+  opacity: 0.6;
+}
+
+/* Post lists */
+.post-group + .post-group {
+  margin-top: 2.5rem;
+}
+.post-group__year {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.post-list li {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line);
+}
+.post-list li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.post-list time {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6rem;
+}
+.post-list a {
+  text-decoration: none;
+}
+@media (max-width: 480px) {
+  .post-list li {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}
+
+.post-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.post-nav a {
+  text-decoration: none;
+}
+
+/* Rendered markdown */
+.prose {
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose p,
+.prose ul,
+.prose ol,
+.prose blockquote,
+.prose pre,
+.prose figure {
+  margin: 0 0 1.3em;
+}
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin: 2em 0 0.6em;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.prose h2 {
+  font-size: 1.4rem;
+}
+.prose h3 {
+  font-size: 1.15rem;
+}
+.prose h4 {
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.prose a {
+  text-decoration-color: var(--accent);
+}
+.prose blockquote {
+  padding-left: 1rem;
+  border-left: 2px solid var(--accent);
+  color: var(--muted);
+}
+.prose img,
+.prose video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+.prose figcaption {
+  margin-top: 0.4em;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.prose hr {
+  margin: 2.5em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  background: var(--code-bg);
+}
+.prose pre {
+  padding: 1rem 1.15rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  background: var(--shiki-theme-bg, var(--code-bg));
+}
+.prose pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+/* Shiki emits both themes as variables on every token; pick the current one */
+.prose pre code span {
+  color: var(--shiki-theme);
+}
+.prose audio {
+  width: 100%;
+}
