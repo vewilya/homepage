@@ -27,6 +27,8 @@
  * context needs a user gesture on most browsers, which the armed state
  * already provides.
  */
+import { attachAnalyser } from "~/utils/sky/spectrum";
+
 type Mode = "light" | "dark";
 
 const STORAGE_KEY = "ub:sound";
@@ -63,6 +65,7 @@ let session = 0;
 const played = new WeakSet<HTMLAudioElement>(); // has started at least once
 // one gain node per element, the element itself always at full volume
 let ctx: AudioContext | undefined;
+let analyser: AnalyserNode | undefined; // after the gains: the sky reads what is heard
 const gains = new WeakMap<HTMLAudioElement, GainNode>();
 const level = (el: HTMLAudioElement) => gains.get(el)?.gain.value ?? el.volume;
 const setLevel = (el: HTMLAudioElement, v: number) => {
@@ -95,9 +98,16 @@ const buildPlayers = (base: string) => {
       el.preload = "none"; // fetched only once it is about to play
       if ("AudioContext" in window) {
         ctx ??= new AudioContext();
+        if (!analyser) {
+          analyser = ctx.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.7;
+          analyser.connect(ctx.destination);
+          attachAnalyser(analyser);
+        }
         const gain = ctx.createGain();
         gain.gain.value = 0;
-        ctx.createMediaElementSource(el).connect(gain).connect(ctx.destination);
+        ctx.createMediaElementSource(el).connect(gain).connect(analyser);
         gains.set(el, gain);
       } else {
         el.volume = 0;
@@ -211,7 +221,14 @@ const transition = async (to: HTMLAudioElement, ms: number) => {
   const mine = ++session;
   const from = current;
   current = to;
-  if (from === to) return; // already on it
+  if (from === to) {
+    // already on it: a second attempt for the same track (a press and its
+    // click both count as the first gesture) must still see it faded in,
+    // since the attempt it replaced was cut off before its fade
+    if (to.paused) await play(to);
+    if (mine === session) await fade(to, VOLUME, ms);
+    return;
+  }
   setLevel(to, 0);
   await play(to);
   if (mine !== session) return; // something newer took over meanwhile

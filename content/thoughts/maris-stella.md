@@ -12,4 +12,4 @@ For an upcoming presentation of a new art subject I was involved in, I decided t
 
 The application is still a work in progress. I plan to add more interaction between the physical phenomena, the visualizations and the musical output, including some more random aspects and morphing between sonic landscapes over longer time intervals. So far, this is what I've got. I'll keep you posted.
 
-:video-embed{src="https://vimeo.com/1250047058" title="Maris Stella, first run"}
+:video-embed{src="https://vimeo.com/1250047058" title="Maris Stella, first run" poster="/images/transmissions/maris-stella.webp"}

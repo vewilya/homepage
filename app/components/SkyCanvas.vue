@@ -13,8 +13,7 @@
  *   crossfade, so the dots recolour in step with everything behind them.
  */
 import { LATTICE, type Effect, type Frame, type Pointer } from "~/utils/sky/types";
-import { createDotGrid } from "~/utils/sky/dotGrid";
-import { createGameOfLife } from "~/utils/sky/gameOfLife";
+import { createLivingGrid, debug as gridDebug } from "~/utils/sky/livingGrid";
 
 const FRAME_MS = 40; // ~25 fps
 const MODE_EASE_MS = 8000; // matches --mode-fade in main.css
@@ -41,8 +40,9 @@ const canvas = ref<HTMLCanvasElement>();
 onMounted(() => {
   const el = canvas.value!;
   const ctx = el.getContext("2d", { alpha: true })!;
-  // the ambient pulse, and a Game of Life on the same lattice, seeded by clicks
-  const effects: Effect[] = [createDotGrid(), createGameOfLife()];
+  // one lattice: the ambient grain, the music's spectrum and a Game of Life
+  // seeded by clicks, all on the same dots
+  const effects: Effect[] = [createLivingGrid()];
   const pointer: Pointer = { x: 0, y: 0, active: false, clicks: [] };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -142,6 +142,7 @@ onMounted(() => {
     get pointer() {
       return pointer;
     },
+    grid: gridDebug,
   };
   if (import.meta.dev) (window as unknown as { __sky: typeof stats }).__sky = stats;
 

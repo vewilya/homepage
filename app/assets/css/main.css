@@ -860,11 +860,13 @@ body {
   text-decoration-color: var(--accent);
   text-underline-offset: 0.2em;
 }
-/* the play mark over the thumbnail: a glass disc with the accent mark */
+/* the play mark over a thumbnail or a poster: a glass disc with the accent
+   mark; expeditions and the posts' video posters share it */
 .project__thumb {
   position: relative;
 }
-.project__play {
+.project__play,
+.play-mark {
   position: absolute;
   inset: 0;
   display: flex;
@@ -883,7 +885,8 @@ body {
     transform 0.2s ease,
     border-color 0.2s ease;
 }
-.project__play svg {
+.project__play svg,
+.play-mark svg {
   display: block;
   width: 1.1rem;
   height: 1.1rem;
@@ -891,7 +894,8 @@ body {
   fill: currentColor;
 }
 .project__play:hover,
-.project__play.is-open {
+.project__play.is-open,
+.video-embed__poster:hover .play-mark {
   border-color: var(--accent);
   transform: scale(1.06);
 }

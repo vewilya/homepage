@@ -101,9 +101,10 @@ with `CNAME` inside. Push to `master` deploys.
 - [x] 10. `useTheme` + `ModeSwitch` (large in the hero, small in the header);
       sets `data-theme`, CSS, pictures and music follow with a 2.5s crossfade (Claude)
 - [x] 11. `SkyCanvas` with the loop, resize, reduced-motion, pointer tracking;
-      first effect: ambient dot-grid noise (`utils/sky/dotGrid.ts`) (Claude)
+      first effect: ambient dot-grid noise, since folded with the Game of Life and
+      the music spectrum into one effect (`utils/sky/livingGrid.ts`) (Claude)
 - [x] 12. Pointer-reactive effect: Conway's Game of Life on the lattice,
-      seeded by clicks (`utils/sky/gameOfLife.ts`); cells carry energy so
+      seeded by clicks (now part of `livingGrid.ts`); cells carry energy so
       colonies fade after ~12s (Claude). Tried and dropped before it: a hover
       wake (felt like drawing) and a click ripple (Urs, 25 Nov 2026)
 - [x] 13. Mode-specific effects: decided against (Urs, 25 Nov 2026). The

@@ -14,6 +14,6 @@ When we were tasked with coming up with an idea for a music companion app in our
 
 We developed a prototype called Downbeat, a companion app that guides you through your daily practice. Downbeat helps you set goals, creates a practice plan for you, and gives you access to practice tools like a tuner, a metronome and timbre analysis. What the app doesn't do is provide professional musical feedback. In our book, that is still the job of a professional music teacher.
 
-![Downbeat, the practice companion](/images/transmissions/downbeat.webp)
+:video-embed{src="https://www.youtube.com/watch?v=swhorfKo8_A" title="Downbeat, the practice companion" poster="/images/transmissions/downbeat.webp"}
 
 If you want to find out more about Downbeat and the work we did, [read the write-up on the HSLU blog](https://blog.hslu.ch/iip/2026/07/01/downbeat/).
