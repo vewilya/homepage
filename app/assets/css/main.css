@@ -922,8 +922,8 @@ body {
   .project {
     grid-template-columns: 1fr;
   }
-  .project__image {
-    max-width: 12rem;
+  .project__thumb {
+    max-width: 12rem; /* capped here, not on the image, so the play disc centres on the picture */
   }
   .project__body {
     grid-column: 1;
