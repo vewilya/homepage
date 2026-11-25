@@ -8,7 +8,7 @@
  * - While playing, the Media Session carries the track's name and the site
  *   icon, so lock screens and system players show something sensible, and
  *   their play/pause buttons drive the same switch.
- * - Dark loops Pitch Black. Light plays the City Sundown intro once, then
+ * - Dark loops Darklings (pitch-black.m4a). Light plays the City Sundown intro once, then
  *   its loop, handed over on the intro's `ended` event.
  * - A mode switch is a real crossfade: both tracks sound at once for
  *   MODE_FADE_MS (8s, like every other mode fade) on an equal-power curve. On and off fade over TOGGLE_FADE_MS.
@@ -37,9 +37,9 @@ const PLAYLISTS: Record<Mode, { src: string; loop: boolean }[]> = {
     { src: "/audio/city-sundown-loop.m4a", loop: true },
   ],
 };
-const TITLES: Record<Mode, string> = { dark: "Pitch Black", light: "City Sundown" };
+const TITLES: Record<Mode, string> = { dark: "Darklings", light: "City Sundown" };
 const ALBUMS: Record<Mode, string> = {
-  dark: "Ghosts in the Machines (Darkling)",
+  dark: "Ghosts in the Machines",
   light: "Soundscapes for Modern Superheroes",
 };
 const ARTIST = "Urs Bollhalder";
@@ -221,9 +221,19 @@ export const useAmbientAudio = () => {
     enabled.value = true; // the button answers at once, not after the fade
     const mode = readMode();
     try {
-      await transition(resumePoint(), ms);
+      const to = resumePoint();
+      const going = transition(to, ms);
+      // the display turns over as soon as the new track is audible, not when
+      // the crossfade has finished; while armed the prompt covers it anyway
+      to.addEventListener(
+        "playing",
+        () => (nowPlaying.value = `${TITLES[mode]} · ${ALBUMS[mode]}`),
+        {
+          once: true,
+        },
+      );
+      await going;
       pending.value = false;
-      nowPlaying.value = `${TITLES[mode]} · ${ALBUMS[mode]}`;
       announce(mode);
       localStorage.setItem(STORAGE_KEY, "on");
     } catch {

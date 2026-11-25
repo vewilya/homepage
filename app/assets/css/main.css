@@ -366,11 +366,11 @@ body {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem 1.5rem;
-  /* the right padding keeps the corner cluster's space free, so the menu
-     wraps to a second row on narrow windows instead of running under it */
-  padding: 1.5rem max(15rem, calc((100% - 44rem) / 2)) 1.5rem max(1.25rem, calc((100% - 44rem) / 2));
+  /* the row starts at the column's edge and runs to the window's edge, so
+     the display and the light have the whole right side */
+  padding: 1.5rem 1.5rem 1.5rem max(1.25rem, calc((100% - 44rem) / 2));
   font-family: var(--font-mono);
   font-size: 0.85rem;
   letter-spacing: 0.04em;
@@ -450,13 +450,14 @@ body {
 .site-nav a {
   text-decoration: none;
 }
-/* the name steps back so the menu entries carry the row */
+/* the name carries its row, with the radio display and the sound light
+   centred on it */
 .site-name {
   font-family: var(--font-title);
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 1.1rem;
+  font-weight: 700;
   letter-spacing: 0;
-  color: var(--muted);
+  color: var(--text);
 }
 .site-name:hover {
   color: var(--text);
@@ -637,7 +638,6 @@ body {
 .hero__links a,
 .mode-switch__track,
 .sound-toggle__disc,
-.panel-group,
 .zone {
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(10px);
@@ -988,37 +988,26 @@ body {
   opacity: 0;
 }
 
-/* Panel groups, as on the console: a hairline box per function, its
-   caption sitting on the top edge in small uppercase mono */
-.panel-group {
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0.45rem 0.8rem;
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  transition: border-color var(--ink-fade) ease;
-}
-/* phones: a slimmer frame, a little air around the label and no more */
-@media (max-width: 640px) {
-  .panel-group {
-    padding: 0.18rem 0.45rem;
-  }
-}
-
-/* the corner cluster: mode switch and sound, upper right of the window */
+/* the end of the header row: the radio display takes whatever room the
+   name and the menu leave, the sound light sits at the column's edge */
 .corner {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 2;
+  flex: 1 1 14rem; /* below 14rem it drops to its own row */
+  min-width: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 1.4rem;
 }
-/* narrow windows: the menu wraps under the name, so the page starts lower */
-@media (max-width: 780px) {
+/* narrower windows: the menu takes its own row under the name, the display
+   and the light stay beside the name, and the page starts lower */
+@media (max-width: 1000px) {
+  .site-nav {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .corner {
+    flex-basis: 0; /* shrinks to the room beside the name instead of wrapping */
+  }
   .site-main {
     padding-top: 7rem;
   }
@@ -1026,26 +1015,11 @@ body {
 /* phones: the sound switch sits on the name's row, a size smaller, and the
    menu wraps underneath; the footer stacks its two lines */
 @media (max-width: 640px) {
-  .corner {
-    top: 1.55rem; /* the framed switch centred on the name */
-    right: 1.25rem;
-  }
-  .site-name {
-    font-size: 1.1rem;
-    font-weight: 700; /* the name carries the row here, against the switch */
-    color: var(--text);
-  }
   .corner .mode-switch--small {
     --h: 0.95rem;
   }
   .corner .mode-switch--small .mode-switch__label {
     font-size: 0.7rem;
-  }
-  .site-header {
-    padding-right: 13.5rem; /* the display's and the switch's room on the name's row */
-  }
-  .corner .radio {
-    width: 6rem; /* outweighs the base rule, which comes later in the file */
   }
   .corner {
     gap: 0.7rem;
@@ -1083,12 +1057,14 @@ body {
     display: none;
   }
 }
-/* The radio display: a narrow window in the panel, the current track
-   scrolling through it like the text on a car radio. The tape holds the
-   line twice and slides by half its width, so the loop never jumps. */
+/* The radio display: the current track scrolling through its window like
+   the text on a car radio. The line enters from the right edge (the tape's
+   left padding is the window's width) and leaves past the left edge before
+   it comes round again, so it is never shown twice. */
 .radio {
   display: block;
-  width: 13rem;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -1102,20 +1078,26 @@ body {
 }
 .radio__tape {
   display: inline-block;
-  animation: radio-scroll 16s linear infinite;
+  padding-left: 100%; /* starts just outside the window */
+  animation: radio-scroll 22s linear infinite;
 }
 .radio__tape.is-still {
   animation: none; /* the prompt just sits there */
   padding-left: 0.5rem;
 }
-.radio__text {
-  display: inline-block;
-  padding-right: 3em; /* the gap between one pass and the next */
-}
 @keyframes radio-scroll {
   to {
-    transform: translateX(-50%);
+    transform: translateX(-100%);
   }
+}
+/* the line turning over: the old one fades out, the new one fades in */
+.radio-enter-active,
+.radio-leave-active {
+  transition: opacity 1.5s ease;
+}
+.radio-enter-from,
+.radio-leave-to {
+  opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
   .radio__tape {

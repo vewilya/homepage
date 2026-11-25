@@ -85,25 +85,22 @@ const radioLine = computed(() =>
           ><i>03</i>transmissions</NuxtLink
         >
       </nav>
-    </header>
-
-    <!-- the corner cluster, pinned to the window outside the column: the
-         small mode switch (the home screen has the large one) and the sound -->
-    <!-- the corner: the sound control in a panel frame. The mode is switched
-         on the home screen only. -->
-    <div class="corner">
-      <!-- the radio display: a bare window scrolling the current track, like
-           the text on a car radio, between the title and the sound light;
-           gone while sound is off -->
-      <Transition name="fade">
-        <span v-if="radioLine" class="radio" aria-live="polite">
-          <span class="radio__tape" :class="{ 'is-still': soundPending }">
-            <span class="radio__text">{{ radioLine }}</span>
-            <span class="radio__text" aria-hidden="true">{{ radioLine }}</span>
+      <!-- the rest of the row: the radio display, a bare window scrolling the
+           current track like the text on a car radio (gone while sound is
+           off), and the sound light at the end. The mode is switched on the
+           home screen only. -->
+      <div class="corner">
+        <Transition name="fade">
+          <span v-if="radioLine" class="radio" aria-live="polite">
+            <!-- a new line (a mode change, or the prompt) fades out the old one first;
+                 type="transition" so the endless scroll animation does not hold it up -->
+            <Transition name="radio" mode="out-in" type="transition">
+              <span :key="radioLine" class="radio__tape" :class="{ 'is-still': soundPending }">{{
+                radioLine
+              }}</span>
+            </Transition>
           </span>
-        </span>
-      </Transition>
-      <div class="panel-group">
+        </Transition>
         <!-- an event light: a small square that lights when sound is on -->
         <button
           type="button"
@@ -118,7 +115,7 @@ const radioLine = computed(() =>
           <span class="sound-toggle__disc" aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </header>
 
     <main class="site-main">
       <slot />
