@@ -1044,9 +1044,11 @@ body {
   .site-header {
     padding-right: 13.5rem; /* the display's and the switch's room on the name's row */
   }
-  .panel-group .radio {
-    width: 5.5rem; /* outweighs the base rule, which comes later in the file */
-    margin-right: 0.6rem;
+  .corner .radio {
+    width: 6rem; /* outweighs the base rule, which comes later in the file */
+  }
+  .corner {
+    gap: 0.7rem;
   }
   .site-nav::before,
   .site-footer__links::before {
@@ -1086,8 +1088,7 @@ body {
    line twice and slides by half its width, so the loop never jumps. */
 .radio {
   display: block;
-  width: 9rem;
-  margin-right: 1rem;
+  width: 13rem;
   overflow: hidden;
   font-family: var(--font-mono);
   font-size: 0.7rem;

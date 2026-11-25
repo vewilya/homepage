@@ -38,6 +38,10 @@ const PLAYLISTS: Record<Mode, { src: string; loop: boolean }[]> = {
   ],
 };
 const TITLES: Record<Mode, string> = { dark: "Pitch Black", light: "City Sundown" };
+const ALBUMS: Record<Mode, string> = {
+  dark: "Ghosts in the Machines (Darkling)",
+  light: "Soundscapes for Modern Superheroes",
+};
 const ARTIST = "Urs Bollhalder";
 
 // Module state: one player for the whole site, whichever component asks.
@@ -204,7 +208,7 @@ export const useAmbientAudio = () => {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: TITLES[mode],
       artist: ARTIST,
-      album: "ursbollhalder.com",
+      album: ALBUMS[mode],
       artwork: [
         { src: `${base}/icon-512.png`, sizes: "512x512", type: "image/png" },
         { src: `${base}/icon-1024.png`, sizes: "1024x1024", type: "image/png" },
@@ -219,7 +223,7 @@ export const useAmbientAudio = () => {
     try {
       await transition(resumePoint(), ms);
       pending.value = false;
-      nowPlaying.value = TITLES[mode];
+      nowPlaying.value = `${TITLES[mode]} · ${ALBUMS[mode]}`;
       announce(mode);
       localStorage.setItem(STORAGE_KEY, "on");
     } catch {

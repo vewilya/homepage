@@ -92,17 +92,18 @@ const radioLine = computed(() =>
     <!-- the corner: the sound control in a panel frame. The mode is switched
          on the home screen only. -->
     <div class="corner">
-      <div class="panel-group">
-        <!-- the radio display: a narrow window scrolling the current track,
-             like a car radio; dark while sound is off -->
-        <Transition name="fade">
-          <span v-if="radioLine" class="radio" aria-live="polite">
-            <span class="radio__tape" :class="{ 'is-still': soundPending }">
-              <span class="radio__text">{{ radioLine }}</span>
-              <span class="radio__text" aria-hidden="true">{{ radioLine }}</span>
-            </span>
+      <!-- the radio display: a bare window scrolling the current track, like
+           the text on a car radio, between the title and the sound light;
+           gone while sound is off -->
+      <Transition name="fade">
+        <span v-if="radioLine" class="radio" aria-live="polite">
+          <span class="radio__tape" :class="{ 'is-still': soundPending }">
+            <span class="radio__text">{{ radioLine }}</span>
+            <span class="radio__text" aria-hidden="true">{{ radioLine }}</span>
           </span>
-        </Transition>
+        </span>
+      </Transition>
+      <div class="panel-group">
         <!-- an event light: a small square that lights when sound is on -->
         <button
           type="button"
