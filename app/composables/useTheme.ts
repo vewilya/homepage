@@ -21,6 +21,15 @@ export const THEME_OS_KEY = "ub:theme-os"; // OS preference when the choice was 
 
 const osQuery = () => matchMedia("(prefers-color-scheme: dark)");
 const osTheme = (): Theme => (osQuery().matches ? "dark" : "light");
+// The OS is watched once for the whole visit, whichever component asked
+// first; the layout asks, so every page has the watcher, not only the home
+// screen. The media query's change event is not relied on alone: it has
+// been seen to stay silent on a query list made early in the page's life,
+// so the preference is also re-read on a slow tick and whenever the tab
+// comes back into view, which is when an OS change usually happened.
+let osWatch: MediaQueryList | undefined;
+let lastOs: Theme | undefined;
+const OS_TICK_MS = 3000;
 
 export const useTheme = () => {
   // null until mounted: the server does not know the visitor's preference
@@ -53,7 +62,18 @@ export const useTheme = () => {
   onMounted(() => {
     const attr = document.documentElement.dataset.theme;
     theme.value = attr === "light" || attr === "dark" ? attr : osTheme();
-    osQuery().addEventListener("change", followOs);
+    if (osWatch) return;
+    lastOs = osTheme();
+    const checkOs = () => {
+      const now = osTheme(); // a fresh query each time, never the stale object
+      if (now === lastOs) return;
+      lastOs = now;
+      followOs();
+    };
+    osWatch = osQuery();
+    osWatch.addEventListener("change", checkOs);
+    setInterval(checkOs, OS_TICK_MS);
+    document.addEventListener("visibilitychange", checkOs);
   });
 
   return { theme, toggle };

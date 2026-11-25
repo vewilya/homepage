@@ -860,6 +860,60 @@ body {
   text-decoration-color: var(--accent);
   text-underline-offset: 0.2em;
 }
+/* the play mark over the thumbnail: a glass disc with the accent mark */
+.project__thumb {
+  position: relative;
+}
+.project__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--accent);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+.project__play svg {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: auto;
+  fill: currentColor;
+}
+.project__play:hover,
+.project__play.is-open {
+  border-color: var(--accent);
+  transform: scale(1.06);
+}
+.project__watch {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+/* the player spans the row under the text; the embed brings its own frame */
+.project__player {
+  grid-column: 1 / -1;
+}
+.project__player .video-embed {
+  margin: 0;
+}
 @media (max-width: 560px) {
   .project {
     grid-template-columns: 1fr;

@@ -33,6 +33,8 @@ const onTransmissions = computed(() => route.path.startsWith("/thoughts"));
 // the panel number of the current page, as on the console's zone diagram
 const zone = computed(() => (isHome.value ? "01" : route.path === "/expeditions" ? "02" : "03"));
 
+// installs the OS light/dark watcher on every page; the switch itself is on home
+useTheme();
 const {
   enabled: sound,
   pending: soundPending,

@@ -2,7 +2,7 @@
 title: "Uchronia"
 description: "A granular synthesis instrument for Kontakt 6 with four independent granular engines, arpeggiators and an Entropy randomizer."
 year: 2022
-order: 6
+order: 8
 active: true
 tags: ["KSP", "Kontakt", "HAVE Audio"]
 link: https://haveaudio.com/collections/virtual-instruments/products/uchronia

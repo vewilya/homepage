@@ -2,7 +2,7 @@
 title: "Mechanics of Noise"
 description: "Sound design and instrument programming for the Kontakt library Mechanics of Noise by HAVE Audio."
 year: 2022
-order: 7
+order: 9
 active: true
 tags: ["KSP", "Kontakt", "HAVE Audio"]
 link: https://haveaudio.com/collections/virtual-instruments/products/bundle-mechanics-of-noise

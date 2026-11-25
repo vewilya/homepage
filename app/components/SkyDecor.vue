@@ -42,7 +42,8 @@ const bezelTicks = computed(() => {
     };
     if (major) {
       const [lx, ly] = bezelPoint(deg, BEZEL.r - 28);
-      tick.label = { x: lx, y: ly, text: String(i * 10).padStart(3, "0") };
+      // rounded, so server and client print the same digits (hydration check)
+      tick.label = { x: +lx.toFixed(1), y: +ly.toFixed(1), text: String(i * 10).padStart(3, "0") };
     }
     ticks.push(tick);
   }

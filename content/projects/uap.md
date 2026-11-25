@@ -2,7 +2,7 @@
 title: "UAP"
 description: "Additional scripting for UAP by HAVE Audio, including the DILATION and CASE modules with full FX randomization."
 year: 2021
-order: 10
+order: 12
 active: true
 tags: ["KSP", "Kontakt", "HAVE Audio"]
 link: https://haveaudio.com/collections/virtual-instruments/products/uap-unique-audio-plugin

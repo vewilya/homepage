@@ -56,6 +56,7 @@ let active: Record<Mode, HTMLAudioElement> | undefined; // where each mode resum
 let current: HTMLAudioElement | undefined;
 let watching = false;
 let armed = false; // waiting for the first gesture because autoplay was blocked
+const RESUME_WAIT_MS = 800; // how long a blocked audio context may keep us waiting
 // Every transition bumps this; a step that awaited something checks it is
 // still the latest before touching anything, so quick toggles cannot interleave.
 let session = 0;
@@ -187,15 +188,19 @@ const play = async (el: HTMLAudioElement) => {
     el.currentTime = (0.15 + 0.7 * Math.random()) * el.duration;
   }
   played.add(el);
-  // the context starts suspended until a gesture on most browsers; a play
-  // that succeeds while it stays suspended would be silent, so that counts
-  // as blocked too and the armed state takes over
-  if (ctx && ctx.state !== "running") await ctx.resume().catch(() => undefined);
-  await el.play(); // throws NotAllowedError without a user gesture
+  // The context starts suspended until a gesture on most browsers, and
+  // Firefox and Safari leave resume() hanging until one comes, so the wait
+  // gets a deadline. A context still suspended after it would play nothing,
+  // and that counts as blocked: the armed state takes over.
   if (ctx && ctx.state !== "running") {
-    el.pause();
-    throw new DOMException("audio context suspended", "NotAllowedError");
+    await Promise.race([
+      ctx.resume().catch(() => undefined),
+      new Promise((r) => setTimeout(r, RESUME_WAIT_MS)),
+    ]);
+    if ((ctx.state as AudioContextState) !== "running")
+      throw new DOMException("audio context suspended", "NotAllowedError");
   }
+  await el.play(); // throws NotAllowedError without a user gesture
 };
 
 /**
@@ -253,9 +258,17 @@ export const useAmbientAudio = () => {
     navigator.mediaSession.playbackState = "playing";
   };
 
+  // Every attempt is numbered: one that lost to a newer attempt (a gesture
+  // came while it was still waiting) must not mark the light as blocked.
+  let attempt = 0;
   const switchOn = async (ms = TOGGLE_FADE_MS) => {
+    const mine = ++attempt;
     enabled.value = true; // the button answers at once, not after the fade
     const mode = readMode();
+    // the gesture listeners go on before the attempt, not after it fails:
+    // a click during the first seconds, while the file still loads or the
+    // browser still thinks about it, is a gesture too and must not be lost
+    arm();
     try {
       const to = resumePoint();
       const going = transition(to, ms);
@@ -263,20 +276,24 @@ export const useAmbientAudio = () => {
       // the crossfade has finished; while armed the prompt covers it anyway
       to.addEventListener(
         "playing",
-        () => (nowPlaying.value = `${TITLES[mode]} · ${ALBUMS[mode]}`),
-        {
-          once: true,
+        () => {
+          pending.value = false; // the light stops waiting the moment sound is there
+          nowPlaying.value = `${TITLES[mode]} · ${ALBUMS[mode]}`;
+          disarm();
         },
+        { once: true },
       );
       await going;
+      if (mine !== attempt) return;
       pending.value = false;
+      disarm();
       announce(mode);
       localStorage.setItem(STORAGE_KEY, "on");
     } catch {
+      if (mine !== attempt) return; // a newer attempt is on it
       // autoplay blocked: stay on, and let the first gesture anywhere start it
       current = undefined;
       pending.value = true;
-      arm();
     }
   };
 
@@ -290,12 +307,20 @@ export const useAmbientAudio = () => {
   };
 
   // The first gesture anywhere retries. A click on the sound control itself
-  // is left to the control: an armed light clicked means "no, thanks".
-  const GESTURES = ["pointerdown", "keydown", "touchend"] as const;
+  // is left to the control, whose toggle also starts an armed light.
+  // every event a browser counts as activation: pointerdown for a mouse,
+  // pointerup and touchend for a finger, keydown, and click as the one all
+  // of them agree on
+  const GESTURES = ["pointerdown", "pointerup", "touchend", "keydown", "click"] as const;
   const onGesture = (e: Event) => {
     if ((e.target as Element | null)?.closest?.(".sound-toggle")) return;
-    disarm();
-    if (enabled.value) void switchOn();
+    if (!enabled.value) return disarm();
+    if (current && !current.paused) return disarm(); // already sounding
+    // the context must be resumed inside the gesture, before any await;
+    // the listeners stay on until a start succeeds, so the click event of
+    // the same press can retry if its pointerdown was not enough
+    if (ctx && ctx.state !== "running") void ctx.resume().catch(() => undefined);
+    void switchOn();
   };
   const arm = () => {
     if (armed) return;
@@ -308,7 +333,8 @@ export const useAmbientAudio = () => {
     for (const type of GESTURES) removeEventListener(type, onGesture);
   };
 
-  const toggle = () => (enabled.value ? switchOff() : switchOn());
+  // an armed light clicked starts the music: the click is the gesture it waits for
+  const toggle = () => (enabled.value && !pending.value ? switchOff() : switchOn());
 
   // A mode change while playing: crossfade to the other playlist.
   const onModeChange = () => {

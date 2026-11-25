@@ -24,7 +24,8 @@ export default defineContentConfig({
         order: z.number(),
         year: z.number().optional(),
         tags: z.array(z.string()).optional(),
-        link: z.string(),
+        link: z.string().optional(), // outside page; a project may have only a post
+        post: z.string().optional(), // path of the transmission about it, e.g. /thoughts/x
         image: z.string().optional(), // path under /public
         video: z.string().optional(),
         github: z.string().optional(),
