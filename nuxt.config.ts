@@ -13,6 +13,9 @@ export default defineNuxtConfig({
     "@fontsource/space-grotesk/700.css",
     "~/assets/css/main.css",
   ],
+  // /llms.txt is a server route built from the content; prerendered so the
+  // static site carries it as a file
+  routeRules: { "/llms.txt": { prerender: true } },
   app: {
     pageTransition: { name: "page" }, // no mode: old and new page overlap and crossfade
     head: {
