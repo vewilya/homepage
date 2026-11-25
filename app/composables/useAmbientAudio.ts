@@ -11,7 +11,7 @@
  * - Dark loops Darklings (pitch-black.m4a). Light plays the City Sundown intro once, then
  *   its loop, handed over on the intro's `ended` event.
  * - A mode switch is a real crossfade: both tracks sound at once for
- *   MODE_FADE_MS (8s, like every other mode fade) on an equal-power curve. On and off fade over TOGGLE_FADE_MS.
+ *   MODE_FADE_MS (8s, like every other mode fade) on a raised cosine. On and off fade over TOGGLE_FADE_MS.
  * - Tracks resume where they were paused. A loop that has never played
  *   starts somewhere in its middle, so a track with a silent head (Pitch
  *   Black) never opens on silence.
@@ -20,6 +20,12 @@
  *
  * Nothing is downloaded before the first switch-on: the elements are created
  * lazily, so a visitor who never wants sound never pays for 4 MB of audio.
+ *
+ * Levels are set on a Web Audio gain node per element, not on the element's
+ * `volume`: iOS ignores that property, so volume fades there did nothing
+ * and a crossfade was two tracks at full level until one stopped. The audio
+ * context needs a user gesture on most browsers, which the armed state
+ * already provides.
  */
 type Mode = "light" | "dark";
 
@@ -54,6 +60,18 @@ let armed = false; // waiting for the first gesture because autoplay was blocked
 // still the latest before touching anything, so quick toggles cannot interleave.
 let session = 0;
 const played = new WeakSet<HTMLAudioElement>(); // has started at least once
+// one gain node per element, the element itself always at full volume
+let ctx: AudioContext | undefined;
+const gains = new WeakMap<HTMLAudioElement, GainNode>();
+const level = (el: HTMLAudioElement) => gains.get(el)?.gain.value ?? el.volume;
+const setLevel = (el: HTMLAudioElement, v: number) => {
+  const g = gains.get(el);
+  if (g && ctx) {
+    // glide to the new step rather than jump, so a fade is not a staircase
+    g.gain.cancelScheduledValues(ctx.currentTime);
+    g.gain.setTargetAtTime(v, ctx.currentTime, FADE_STEP_MS / 1000 / 3);
+  } else el.volume = v; // no Web Audio: the element's own volume, as before
+};
 const randomStart = new WeakSet<HTMLAudioElement>(); // loops that open on silence
 // One running fade per element, with its resolver so a cancelled fade settles
 // at once instead of leaving its caller hanging.
@@ -74,7 +92,15 @@ const buildPlayers = (base: string) => {
       const el = new Audio(base + step.src);
       el.loop = step.loop;
       el.preload = "none"; // fetched only once it is about to play
-      el.volume = 0;
+      if ("AudioContext" in window) {
+        ctx ??= new AudioContext();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        ctx.createMediaElementSource(el).connect(gain).connect(ctx.destination);
+        gains.set(el, gain);
+      } else {
+        el.volume = 0;
+      }
       if (step.loop && i === 0) randomStart.add(el); // no intro before it
       return el;
     });
@@ -93,7 +119,11 @@ const buildPlayers = (base: string) => {
       });
     });
   }
-  if (import.meta.dev) (window as unknown as { __ambient: typeof built }).__ambient = built;
+  if (import.meta.dev) {
+    const w = window as unknown as { __ambient: typeof built; __ambientLevel: typeof level };
+    w.__ambient = built;
+    w.__ambientLevel = level;
+  }
   return built;
 };
 
@@ -106,40 +136,38 @@ const cancelFade = (el: HTMLAudioElement) => {
 };
 
 /**
- * Ramp the element's volume to `target` over `ms`. "in" rises on a sine,
- * "out" falls on a cosine, so a crossfade keeps constant power; "plain" is
- * a smoothstep for a lone fade. Resolves when done or when cancelled.
+ * Ramp the element's level to `target` over `ms` on a raised cosine: the
+ * outgoing track is at half by the middle and eases to nothing with no
+ * slope at the end, the incoming one mirrors it. An equal-power curve was
+ * tried first and sounded wrong: amplitude is not loudness, so the outgoing
+ * track stayed near full until the last stretch and then broke off.
+ * Resolves when done or when cancelled.
  */
-const fade = (el: HTMLAudioElement, target: number, ms: number, curve: "in" | "out" | "plain") =>
+const fade = (el: HTMLAudioElement, target: number, ms: number) =>
   new Promise<void>((resolve) => {
     cancelFade(el);
     if (ms <= 0) {
-      el.volume = target;
+      setLevel(el, target);
       return resolve();
     }
-    const from = el.volume;
+    const from = level(el);
     const t0 = performance.now();
-    const shape = (p: number) =>
-      curve === "in"
-        ? Math.sin((p * Math.PI) / 2)
-        : curve === "out"
-          ? 1 - Math.cos((p * Math.PI) / 2)
-          : p * p * (3 - 2 * p);
+    const shape = (p: number) => (1 - Math.cos(p * Math.PI)) / 2;
     const timer = setInterval(() => {
       const p = Math.min(1, (performance.now() - t0) / ms);
-      el.volume = from + (target - from) * shape(p);
+      setLevel(el, from + (target - from) * shape(p));
       if (p >= 1) cancelFade(el); // clears the timer and resolves
     }, FADE_STEP_MS);
     fades.set(el, { timer, resolve });
   });
 
-/** Pause everything and zero every volume; positions are kept for resuming. */
+/** Pause everything and zero every level; positions are kept for resuming. */
 const silenceAll = () => {
   if (!players) return;
   for (const el of [...players.dark, ...players.light]) {
     cancelFade(el);
     el.pause();
-    el.volume = 0;
+    setLevel(el, 0);
   }
 };
 
@@ -159,7 +187,15 @@ const play = async (el: HTMLAudioElement) => {
     el.currentTime = (0.15 + 0.7 * Math.random()) * el.duration;
   }
   played.add(el);
+  // the context starts suspended until a gesture on most browsers; a play
+  // that succeeds while it stays suspended would be silent, so that counts
+  // as blocked too and the armed state takes over
+  if (ctx && ctx.state !== "running") await ctx.resume().catch(() => undefined);
   await el.play(); // throws NotAllowedError without a user gesture
+  if (ctx && ctx.state !== "running") {
+    el.pause();
+    throw new DOMException("audio context suspended", "NotAllowedError");
+  }
 };
 
 /**
@@ -171,12 +207,12 @@ const transition = async (to: HTMLAudioElement, ms: number) => {
   const from = current;
   current = to;
   if (from === to) return; // already on it
-  to.volume = 0;
+  setLevel(to, 0);
   await play(to);
   if (mine !== session) return; // something newer took over meanwhile
   await Promise.all([
-    fade(to, VOLUME, ms, from ? "in" : "plain"),
-    from && fade(from, 0, ms, "out").then(() => mine === session && from.pause()),
+    fade(to, VOLUME, ms),
+    from && fade(from, 0, ms).then(() => mine === session && from.pause()),
   ]);
 };
 
@@ -185,7 +221,7 @@ const stop = async (ms: number) => {
   const mine = ++session;
   const el = current;
   current = undefined;
-  if (el) await fade(el, 0, ms, "plain");
+  if (el) await fade(el, 0, ms);
   if (mine === session) silenceAll();
 };
 
