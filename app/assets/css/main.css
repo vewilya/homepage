@@ -1,7 +1,7 @@
 /* The colour variables are registered as real colours, so the browser can
    interpolate them. Ink colours (text, lines, glass) cut over --ink-fade so
-   type never sits in a muddy in-between; only the veil (--scrim) blends over
-   --mode-fade with the pictures. */
+   type never sits in a muddy in-between; only the veil (--scrim) and the
+   ground (--ground) blend over --mode-fade with the pictures. */
 @property --bg {
   syntax: "<color>";
   inherits: true;
@@ -37,13 +37,13 @@
   inherits: true;
   initial-value: rgba(239, 228, 208, 0.34);
 }
-/* the veil's bottom stop: the veil colour itself on the home screen (a flat
-   veil), the page colour on reading pages (deepening towards the footer).
-   Registered so a page change eases it instead of snapping. */
-@property --veil-bottom {
+/* the ground: the page colour under the pictures and at the foot of the
+   veil on reading pages. Kept apart from --bg so it can follow the pictures'
+   slow fade while --bg cuts with the ink. */
+@property --ground {
   syntax: "<color>";
   inherits: true;
-  initial-value: rgba(239, 228, 208, 0.34);
+  initial-value: #efe4d0;
 }
 
 /* Palette taken from the backgrounds: navy sky, cream paper, orange sun.
@@ -56,6 +56,7 @@
   --font-title: "Space Grotesk", Inter, "Helvetica Neue", system-ui, sans-serif;
 
   --bg: #efe4d0;
+  --ground: #efe4d0;
   --text: #16293b;
   --muted: #2e3b48; /* deep enough to read over the picture */
   --accent: #c9461f;
@@ -76,12 +77,14 @@
     --accent var(--ink-fade) ease,
     --line var(--ink-fade) ease,
     --code-bg var(--ink-fade) ease,
-    --scrim var(--mode-fade) ease;
+    --scrim var(--mode-fade) ease,
+    --ground var(--mode-fade) ease;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121e2c;
+    --ground: #121e2c;
     --text: #efe6d6;
     --muted: #bcc6d0;
     --accent: #ef6a3c;
@@ -97,6 +100,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #121e2c;
+  --ground: #121e2c;
   --text: #efe6d6;
   --muted: #bcc6d0;
   --accent: #ef6a3c;
@@ -166,8 +170,7 @@ a:hover {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: var(--bg);
-  transition: background-color var(--ink-fade) ease;
+  background: var(--ground); /* shows through at the midpoint of a crossfade */
 }
 .site-bg__layer {
   position: absolute;
@@ -301,21 +304,25 @@ a:hover {
   height: 100%;
   pointer-events: none;
 }
-/* a veil so type stays readable; stronger on reading pages */
-/* one gradient on every page; only its bottom stop differs, and that stop
-   eases over the picture fade, so the veil never jumps on a page change */
+/* a veil so type stays readable: a flat scrim on every page, and on reading
+   pages a second layer that deepens to the ground towards the footer. The
+   second layer is faded by opacity on a page change, never by colour, so its
+   colours stay in step with the pictures' mode fade. */
 .site-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, var(--scrim), var(--veil-bottom) 90%);
+  background: var(--scrim);
 }
-.site {
-  --veil-bottom: var(--scrim);
-  transition: --veil-bottom 6s ease; /* the picture fade's length */
+.site-bg__ground {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, var(--ground) 90%);
+  opacity: 0;
+  transition: opacity 6s ease; /* the picture fade's length */
 }
-.site--inner {
-  --veil-bottom: var(--bg);
+.site--inner .site-bg__ground {
+  opacity: 1;
 }
 body {
   transition:
@@ -327,7 +334,7 @@ body {
     --mode-fade: 0s;
     --ink-fade: 0s;
   }
-  .site {
+  .site-bg__ground {
     transition: none;
   }
   a,

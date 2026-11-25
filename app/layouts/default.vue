@@ -58,6 +58,8 @@ const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
           />
         </Transition>
       </div>
+      <!-- reading pages: the veil deepens to the ground towards the footer -->
+      <div class="site-bg__ground" />
     </div>
     <SkyDecor />
     <SkyCanvas />
