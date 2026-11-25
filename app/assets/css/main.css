@@ -1,47 +1,100 @@
+/* The colour variables are registered as real colours, so the browser can
+   interpolate them: a mode switch then eases every colour everywhere, the
+   header gradient and colour-mixed labels included, over --mode-fade. */
+@property --bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #efe4d0;
+}
+@property --text {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #16293b;
+}
+@property --muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #3e4c5a;
+}
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #c9461f;
+}
+@property --line {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(29, 52, 73, 0.22);
+}
+@property --code-bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(29, 52, 73, 0.06);
+}
+@property --scrim {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(239, 228, 208, 0.68);
+}
+
 /* Palette taken from the backgrounds: navy sky, cream paper, orange sun.
-   Light is the default, dark follows the system or a later data-theme
-   switch on <html> (assignment 10). */
+   Light is the default, dark follows the system or the data-theme switch
+   on <html>. Each mode has its own picture layer; a switch crossfades the
+   layers, the veil and the colours over --mode-fade. */
 :root {
   --font-body: Inter, "Helvetica Neue", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-title: "Space Grotesk", Inter, "Helvetica Neue", system-ui, sans-serif;
 
   --bg: #efe4d0;
-  --text: #1d3449;
-  --muted: #5e6873;
+  --text: #16293b;
+  --muted: #3e4c5a; /* dark enough to read over the veiled picture */
   --accent: #c9461f;
-  --line: rgba(29, 52, 73, 0.16);
+  --line: rgba(29, 52, 73, 0.22);
   --code-bg: rgba(29, 52, 73, 0.06);
-  --bg-opacity: 0; /* the picture stays hidden in light mode */
-  --scrim: transparent;
+  --layer-light: 1; /* which picture layer shows */
+  --layer-dark: 0;
+  --scrim: rgba(239, 228, 208, 0.68); /* cream veil, the picture shows through softly */
+  --mode-fade: 4s;
   --shiki-theme: var(--shiki-light);
   --shiki-theme-bg: var(--shiki-light-bg);
   color-scheme: light;
+  transition:
+    --bg var(--mode-fade) ease,
+    --text var(--mode-fade) ease,
+    --muted var(--mode-fade) ease,
+    --accent var(--mode-fade) ease,
+    --line var(--mode-fade) ease,
+    --code-bg var(--mode-fade) ease,
+    --scrim var(--mode-fade) ease;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1d3449;
+    --bg: #121e2c;
     --text: #efe6d6;
-    --muted: #a7b4c0;
+    --muted: #a3b0bd;
     --accent: #ef6a3c;
     --line: rgba(239, 230, 214, 0.18);
     --code-bg: rgba(239, 230, 214, 0.08);
-    --bg-opacity: 1;
-    --scrim: rgba(23, 44, 64, 0.5);
+    --layer-light: 0;
+    --layer-dark: 1;
+    --scrim: rgba(18, 30, 44, 0.45);
     --shiki-theme: var(--shiki-default);
     --shiki-theme-bg: var(--shiki-default-bg);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #1d3449;
+  --bg: #121e2c;
   --text: #efe6d6;
-  --muted: #a7b4c0;
+  --muted: #a3b0bd;
   --accent: #ef6a3c;
   --line: rgba(239, 230, 214, 0.18);
   --code-bg: rgba(239, 230, 214, 0.08);
-  --bg-opacity: 1;
-  --scrim: rgba(23, 44, 64, 0.5);
+  --layer-light: 0;
+  --layer-dark: 1;
+  --scrim: rgba(18, 30, 44, 0.45);
   --shiki-theme: var(--shiki-default);
   --shiki-theme-bg: var(--shiki-default-bg);
   color-scheme: dark;
@@ -64,6 +117,14 @@ body {
   color: var(--text);
   font: 400 17px/1.6 var(--font-body);
   -webkit-font-smoothing: antialiased;
+  user-select: none; /* the interface is not text; articles opt back in below */
+  -webkit-user-select: none;
+}
+.prose,
+.page-title,
+.post__meta {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 a {
@@ -80,35 +141,101 @@ a:hover {
   text-decoration-color: currentColor;
 }
 
-/* Page frame: header, main, footer in one column over the fixed picture */
+/* Page frame: header, main, footer in one column over the fixed picture.
+   Every page is clamped to the window; only a single post may scroll. */
 .site {
   position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
+.site:not(.site--post) {
+  height: 100dvh;
+  overflow: hidden;
+}
+.site:not(.site--post) .site-main {
+  min-height: 0;
+  overflow-y: auto; /* a long list scrolls inside its column, not the page */
+}
 
 .site-bg {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: var(--bg) center / cover no-repeat;
-  opacity: var(--bg-opacity);
-  transition: opacity 0.6s ease;
+  background: var(--bg);
+  transition: background-color var(--mode-fade) ease;
 }
-/* a dark veil so type stays readable; stronger on reading pages */
+.site-bg__layer {
+  position: absolute;
+  inset: 0;
+  transition: opacity var(--mode-fade) ease;
+}
+.site-bg__picture {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat;
+}
+/* page change: the new picture fades in on top, the old one simply stays
+   underneath until it is removed, so the page colour never shows through */
+.bg-enter-active {
+  transition: opacity 3s ease;
+}
+.bg-enter-from {
+  opacity: 0;
+}
+.bg-leave-active {
+  opacity: 1;
+}
+.site-bg__layer--dark {
+  opacity: var(--layer-dark);
+}
+.site-bg__layer--light {
+  opacity: var(--layer-light);
+}
+/* page change: the old content fades out, the new one fades in */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.45s ease;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+/* the animation canvas: same layer as the pictures, painted after them,
+   never in the way of the pointer */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* a veil so type stays readable; stronger on reading pages */
 .site-bg::after {
   content: "";
   position: absolute;
   inset: 0;
   background: var(--scrim);
+  transition: background var(--mode-fade) ease;
 }
 .site--inner .site-bg::after {
   background: linear-gradient(to bottom, var(--scrim), var(--bg) 90%);
 }
+body {
+  transition:
+    background-color var(--mode-fade) ease,
+    color var(--mode-fade) ease;
+}
 @media (prefers-reduced-motion: reduce) {
-  .site-bg,
-  a {
+  :root {
+    --mode-fade: 0s;
+  }
+  a,
+  .bg-enter-active,
+  .page-enter-active,
+  .page-leave-active {
     transition: none;
   }
 }
@@ -123,21 +250,67 @@ a:hover {
   padding-right: 1.25rem;
 }
 
+/* Fixed to the top of the window. One left-aligned cluster: name, a
+   hairline, then the menu. The side padding keeps it on the content column;
+   a soft gradient of the page colour keeps it legible over a scrolled post. */
 .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  max-width: none;
+  margin: 0;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: baseline;
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
+  gap: 0.5rem 1.5rem;
+  padding: 1.5rem max(1.25rem, calc((100% - 44rem) / 2)) 1.5rem;
   font-family: var(--font-mono);
   font-size: 0.85rem;
   letter-spacing: 0.04em;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bg) 70%, transparent),
+    transparent
+  );
+  pointer-events: none; /* the gradient must not block the page beneath */
+}
+.site-header > * {
+  pointer-events: auto;
+}
+.site-name {
+  white-space: nowrap;
+}
+/* the header is out of flow, so the page starts below it */
+.site-main {
+  padding-top: 5.5rem;
+}
+.site-nav::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  margin-right: 0.25rem;
+  background: var(--line);
+  align-self: center;
 }
 .site-name,
 .site-nav a {
   text-decoration: none;
 }
-.site-nav a.router-link-active {
+/* the name steps back so the menu entries carry the row */
+.site-name {
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.site-name:hover {
+  color: var(--text);
+}
+.site-nav a.is-active {
   color: var(--accent);
 }
 
@@ -173,21 +346,24 @@ a:hover {
 .hero {
   width: 100%;
   text-align: center;
-  padding: 10vh 0 14vh;
+  padding: 2vh 0 8vh;
 }
 .hero__name {
   margin: 0 0 1.25rem;
+  font-family: var(--font-title);
   font-size: clamp(2.4rem, 7vw, 4.25rem);
   font-weight: 300;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.05;
 }
 .hero__tagline {
-  max-width: 34rem;
+  max-width: 36rem;
   margin: 0 auto 1.75rem;
-  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  font-family: var(--font-title);
+  font-size: clamp(1.1rem, 2.3vw, 1.4rem);
   font-weight: 300;
-  line-height: 1.5;
+  line-height: 1.45;
+  letter-spacing: 0.005em;
 }
 .hero__roles {
   display: flex;
@@ -240,10 +416,11 @@ a:hover {
 /* Inner pages */
 .page-title {
   margin: 1.5rem 0 1.5rem;
+  font-family: var(--font-title);
   font-size: clamp(1.8rem, 4vw, 2.4rem);
   font-weight: 300;
   line-height: 1.15;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 .post__header .page-title {
   margin-bottom: 0.5rem;
@@ -339,6 +516,7 @@ a:hover {
 .prose h3,
 .prose h4 {
   margin: 2em 0 0.6em;
+  font-family: var(--font-title);
   font-weight: 500;
   line-height: 1.25;
 }
@@ -405,4 +583,203 @@ a:hover {
 }
 .prose audio {
   width: 100%;
+}
+
+/* Header: nav links and the sound switch sit in one row */
+.site-nav {
+  display: flex;
+  align-items: baseline;
+  gap: 1.1rem;
+}
+.site-nav a {
+  padding-bottom: 0.15em;
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+.site-nav a:hover {
+  border-bottom-color: currentColor;
+}
+.sound-toggle {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 400 0.85rem var(--font-mono);
+  letter-spacing: 0.04em;
+  line-height: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+/* phones: the header can wrap to two rows, so the switch takes the bottom
+   corner and the footer links make room for it */
+@media (max-width: 640px) {
+  .sound-toggle {
+    top: auto;
+    bottom: 1.5rem;
+    right: 1.25rem;
+  }
+  .site-footer {
+    padding-right: 4.5rem;
+  }
+  .site-main {
+    padding-top: 7rem;
+  }
+  .site-nav::before {
+    display: none; /* the menu starts its own row here */
+  }
+}
+.sound-toggle:hover,
+.sound-toggle.is-on {
+  color: var(--text);
+}
+.sound-toggle__dot {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  transition: background 0.2s;
+}
+.sound-toggle.is-on .sound-toggle__dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  animation: sound-pulse 2.4s ease-in-out infinite;
+}
+@keyframes sound-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sound-toggle.is-on .sound-toggle__dot {
+    animation: none;
+  }
+}
+
+/* Mode switch: an instrument-panel rocker. The knob is a sun in day mode and
+   slides across to become a moon at night. Its position follows --layer-dark
+   (0 or 1), so the stylesheet alone puts it on the right side before any
+   script runs. --h sets the overall scale. */
+.mode-switch {
+  --h: 3.5rem;
+  --pad: 0.18;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--h) * 0.4);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+}
+.mode-switch--small {
+  --h: 1.1rem;
+}
+.mode-switch__label {
+  font-family: var(--font-mono);
+  font-size: calc(var(--h) * 0.24);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: color var(--mode-fade) ease;
+}
+.mode-switch--small .mode-switch__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+/* day lights the left label, night the right one */
+.mode-switch__label:first-child {
+  color: color-mix(in srgb, var(--text) calc((1 - var(--layer-dark)) * 100%), var(--muted));
+}
+.mode-switch__label:last-child {
+  color: color-mix(in srgb, var(--text) calc(var(--layer-dark) * 100%), var(--muted));
+}
+
+.mode-switch__track {
+  position: relative;
+  width: calc(var(--h) * 2.3);
+  height: var(--h);
+  border-radius: var(--h);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent);
+  transition:
+    border-color var(--mode-fade) ease,
+    background var(--mode-fade) ease;
+}
+.mode-switch:hover .mode-switch__track {
+  border-color: var(--accent);
+}
+.mode-switch:focus-visible {
+  outline: none;
+}
+.mode-switch:focus-visible .mode-switch__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* gauge ticks along the middle of the track, between the two knob positions */
+.mode-switch__ticks {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--h) * 0.95);
+  right: calc(var(--h) * 0.95);
+  height: calc(var(--h) * 0.22);
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    to right,
+    var(--line) 0 1px,
+    transparent 1px calc(var(--h) * 0.14)
+  );
+  opacity: 0.9;
+}
+.mode-switch--small .mode-switch__ticks {
+  display: none;
+}
+/* the knob: a disc that travels the track; day = orange sun, night = cream moon */
+.mode-switch__knob {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--h) * var(--pad));
+  width: calc(var(--h) * (1 - 2 * var(--pad)));
+  height: calc(var(--h) * (1 - 2 * var(--pad)));
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 calc(var(--h) * 0.35) color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translate(calc(var(--layer-dark) * (var(--h) * (2.3 - 1))), -50%);
+  transition:
+    transform 0.7s cubic-bezier(0.65, 0, 0.35, 1),
+    background var(--mode-fade) ease,
+    box-shadow var(--mode-fade) ease;
+}
+/* the moon: a second disc that slides over the sun as night comes */
+.mode-switch__knob::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--text);
+  clip-path: circle(50% at calc(50% + (1 - var(--layer-dark)) * 95%) 50%);
+  opacity: var(--layer-dark);
+  transition:
+    clip-path 0.7s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-switch__knob,
+  .mode-switch__knob::after {
+    transition: none;
+  }
+}
+
+/* Hero placement: sits between tagline and roles */
+.hero__switch {
+  margin: 0 0 2.25rem;
 }

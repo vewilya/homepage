@@ -13,6 +13,9 @@ const newest = computed(() => latest.value?.find((p) => !p.draft));
       Into Sound and Space: Crafting silence, designing the wave, and shaping the spaces where it
       unfolds
     </p>
+    <div class="hero__switch">
+      <ModeSwitch size="large" />
+    </div>
     <p class="hero__roles">
       <span>Creative Technologist</span><span>Artist</span><span>Developer</span>
     </p>
@@ -21,7 +24,7 @@ const newest = computed(() => latest.value?.find((p) => !p.draft));
       <a href="https://linkedin.com/in/ursbollhaldercomposer" rel="noopener">LinkedIn</a>
     </p>
     <p v-if="newest" class="hero__latest">
-      latest thought · <NuxtLink :to="newest.path">{{ newest.title }}</NuxtLink>
+      latest transmission · <NuxtLink :to="newest.path">{{ newest.title }}</NuxtLink>
     </p>
   </section>
 </template>
