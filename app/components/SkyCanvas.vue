@@ -13,19 +13,19 @@
  */
 import type { Effect, Frame, Pointer } from "~/utils/sky/types";
 import { createDotGrid } from "~/utils/sky/dotGrid";
-import { createButterflies } from "~/utils/sky/butterflies";
+import { createGameOfLife } from "~/utils/sky/gameOfLife";
 
 const FRAME_MS = 40; // ~25 fps
-const MODE_EASE_S = 4; // matches --mode-fade in main.css
+const MODE_EASE_S = 8; // matches --mode-fade in main.css
 
 const canvas = ref<HTMLCanvasElement>();
 
 onMounted(() => {
   const el = canvas.value!;
   const ctx = el.getContext("2d", { alpha: true })!;
-  // dark: the grid pulse; light: butterflies. Each fades with the mode value.
-  const effects: Effect[] = [createDotGrid(), createButterflies()];
-  const pointer: Pointer = { x: 0, y: 0, active: false };
+  // the ambient pulse, and a Game of Life on the same lattice, seeded by clicks
+  const effects: Effect[] = [createDotGrid(), createGameOfLife()];
+  const pointer: Pointer = { x: 0, y: 0, active: false, clicks: [] };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
   let width = 0;
@@ -62,6 +62,7 @@ onMounted(() => {
     const f: Frame = { ctx, width, height, time: (now - startedAt) / 1000, dt, pointer, dark };
     const t0 = import.meta.dev ? performance.now() : 0;
     for (const e of effects) e.draw(f);
+    pointer.clicks.length = 0; // consumed by this frame
     if (import.meta.dev) stats.drawMs = performance.now() - t0;
   };
 
@@ -84,6 +85,14 @@ onMounted(() => {
     pointer.active = true;
   };
   const onLeave = () => (pointer.active = false);
+  const onDown = (e: PointerEvent) => {
+    // a click on a control is for the control, not for the sky
+    if (
+      (e.target as Element | null)?.closest("a, button, input, select, textarea, [role='switch']")
+    )
+      return;
+    if (pointer.clicks.length < 16) pointer.clicks.push({ x: e.clientX, y: e.clientY });
+  };
 
   // dev only: lets a browser session read what the loop is doing
   const stats = {
@@ -101,6 +110,7 @@ onMounted(() => {
   start();
   addEventListener("resize", resize);
   addEventListener("pointermove", onMove, { passive: true });
+  addEventListener("pointerdown", onDown, { passive: true });
   document.addEventListener("pointerleave", onLeave);
   reduced.addEventListener("change", () => (reduced.matches ? stop() : start()));
 
@@ -108,6 +118,7 @@ onMounted(() => {
     stop();
     removeEventListener("resize", resize);
     removeEventListener("pointermove", onMove);
+    removeEventListener("pointerdown", onDown);
     document.removeEventListener("pointerleave", onLeave);
   });
 });

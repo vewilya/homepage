@@ -24,11 +24,12 @@ useSeoMeta({ description: post.value.description });
 </script>
 
 <template>
-  <article v-if="post" class="post">
+  <article v-if="post" class="post panel">
     <header class="post__header">
       <h1 class="page-title">{{ post.title }}</h1>
       <p class="post__meta">
         <time :datetime="post.date">{{ formatDate(post.date) }}</time>
+        <span v-if="post.location" class="post__location">{{ post.location }}</span>
         <template v-if="post.tags?.length">
           <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
         </template>

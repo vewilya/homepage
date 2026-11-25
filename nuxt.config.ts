@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     "~/assets/css/main.css",
   ],
   app: {
-    pageTransition: { name: "page", mode: "out-in" },
+    pageTransition: { name: "page" }, // no mode: old and new page overlap and crossfade
     head: {
       htmlAttrs: { lang: "en" },
       title: "urs bollhalder",

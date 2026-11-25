@@ -34,7 +34,15 @@
 @property --scrim {
   syntax: "<color>";
   inherits: true;
-  initial-value: rgba(239, 228, 208, 0.68);
+  initial-value: rgba(239, 228, 208, 0.34);
+}
+/* the veil's bottom stop: the veil colour itself on the home screen (a flat
+   veil), the page colour on reading pages (deepening towards the footer).
+   Registered so a page change eases it instead of snapping. */
+@property --veil-bottom {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(239, 228, 208, 0.34);
 }
 
 /* Palette taken from the backgrounds: navy sky, cream paper, orange sun.
@@ -54,8 +62,8 @@
   --code-bg: rgba(29, 52, 73, 0.06);
   --layer-light: 1; /* which picture layer shows */
   --layer-dark: 0;
-  --scrim: rgba(239, 228, 208, 0.68); /* cream veil, the picture shows through softly */
-  --mode-fade: 4s;
+  --scrim: rgba(239, 228, 208, 0.34); /* a thin cream veil, the picture's colour leads */
+  --mode-fade: 8s;
   --shiki-theme: var(--shiki-light);
   --shiki-theme-bg: var(--shiki-light-bg);
   color-scheme: light;
@@ -79,7 +87,7 @@
     --code-bg: rgba(239, 230, 214, 0.08);
     --layer-light: 0;
     --layer-dark: 1;
-    --scrim: rgba(18, 30, 44, 0.45);
+    --scrim: rgba(18, 30, 44, 0.36);
     --shiki-theme: var(--shiki-default);
     --shiki-theme-bg: var(--shiki-default-bg);
     color-scheme: dark;
@@ -94,7 +102,7 @@
   --code-bg: rgba(239, 230, 214, 0.08);
   --layer-light: 0;
   --layer-dark: 1;
-  --scrim: rgba(18, 30, 44, 0.45);
+  --scrim: rgba(18, 30, 44, 0.36);
   --shiki-theme: var(--shiki-default);
   --shiki-theme-bg: var(--shiki-default-bg);
   color-scheme: dark;
@@ -110,6 +118,8 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  overflow: hidden; /* the page never scrolls; a reading panel scrolls inside itself */
 }
 
 body {
@@ -141,21 +151,13 @@ a:hover {
   text-decoration-color: currentColor;
 }
 
-/* Page frame: header, main, footer in one column over the fixed picture.
-   Every page is clamped to the window; only a single post may scroll. */
+/* Page frame over the fixed picture. Header and footer are fixed to the
+   window; the page itself never scrolls. The only thing that scrolls is the
+   glass panel on a reading page, inside itself. */
 .site {
   position: relative;
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-.site:not(.site--post) {
   height: 100dvh;
   overflow: hidden;
-}
-.site:not(.site--post) .site-main {
-  min-height: 0;
-  overflow-y: auto; /* a long list scrolls inside its column, not the page */
 }
 
 .site-bg {
@@ -178,7 +180,7 @@ a:hover {
 /* page change: the new picture fades in on top, the old one simply stays
    underneath until it is removed, so the page colour never shows through */
 .bg-enter-active {
-  transition: opacity 3s ease;
+  transition: opacity 6s ease;
 }
 .bg-enter-from {
   opacity: 0;
@@ -186,20 +188,105 @@ a:hover {
 .bg-leave-active {
   opacity: 1;
 }
+/* night: a steeper curve, the highlights lifted and the shadows sunk;
+   day: more colour, the veil above thins to let it through */
 .site-bg__layer--dark {
   opacity: var(--layer-dark);
+  filter: contrast(1.28) brightness(1.08);
 }
 .site-bg__layer--light {
   opacity: var(--layer-light);
+  filter: saturate(1.6) contrast(1.1);
 }
 /* page change: the old content fades out, the new one fades in */
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.45s ease;
+/* Page change as a crossfade: both pages sit in the column's one grid cell,
+   the leaving one fades out while the new one holds back a moment and fades
+   up over it. Scoped under .site-main so these win over a page root's own
+   transition (the panel has one for its colours). */
+.site-main .page-leave-active {
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
+.site-main .page-enter-active {
+  transition: opacity 1.2s ease 0.35s;
 }
 .page-enter-from,
 .page-leave-to {
   opacity: 0;
+}
+
+/* Decoration: orbit lines, orbs, cog, reticle, ticks. Same layer as the
+   pictures, painted over them and under the dots. */
+.decor {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.75;
+}
+/* the bezel sits exactly in the window's lower left corner; it shrinks on phones */
+.decor--bezel {
+  inset: auto auto 0 0;
+  width: min(320px, 55vw);
+  height: auto;
+}
+.decor__line {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1;
+  stroke-opacity: 0.32;
+  vector-effect: non-scaling-stroke;
+  transition: stroke var(--mode-fade) ease;
+}
+.decor__line--faint {
+  stroke-opacity: 0.18;
+}
+.decor__line--dashed {
+  stroke-dasharray: 2 10;
+  stroke-linecap: round;
+}
+.decor__orb {
+  fill: var(--text);
+  fill-opacity: 0.7;
+  transition: fill var(--mode-fade) ease;
+}
+.decor__orb--accent {
+  fill: var(--accent);
+  fill-opacity: 0.85;
+}
+.decor__square {
+  fill: var(--text);
+  fill-opacity: 0.55;
+  transition: fill var(--mode-fade) ease;
+}
+.decor__square--accent {
+  fill: var(--accent);
+  fill-opacity: 0.9;
+}
+.decor__text {
+  fill: var(--text);
+  fill-opacity: 0.4;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  transition: fill var(--mode-fade) ease;
+}
+.decor__text--readout {
+  font-size: 10px;
+  fill-opacity: 0.5;
+}
+.decor__ring {
+  animation: decor-turn 240s linear infinite;
+}
+.decor__ring.is-still {
+  animation: none;
+}
+@keyframes decor-turn {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* the animation canvas: same layer as the pictures, painted after them,
@@ -213,15 +300,20 @@ a:hover {
   pointer-events: none;
 }
 /* a veil so type stays readable; stronger on reading pages */
+/* one gradient on every page; only its bottom stop differs, and that stop
+   eases over the picture fade, so the veil never jumps on a page change */
 .site-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--scrim);
-  transition: background var(--mode-fade) ease;
+  background: linear-gradient(to bottom, var(--scrim), var(--veil-bottom) 90%);
 }
-.site--inner .site-bg::after {
-  background: linear-gradient(to bottom, var(--scrim), var(--bg) 90%);
+.site {
+  --veil-bottom: var(--scrim);
+  transition: --veil-bottom 6s ease; /* the picture fade's length */
+}
+.site--inner {
+  --veil-bottom: var(--bg);
 }
 body {
   transition:
@@ -232,17 +324,18 @@ body {
   :root {
     --mode-fade: 0s;
   }
+  .site {
+    transition: none;
+  }
   a,
   .bg-enter-active,
-  .page-enter-active,
-  .page-leave-active {
+  .site-main .page-enter-active,
+  .site-main .page-leave-active {
     transition: none;
   }
 }
 
-.site-header,
-.site-main,
-.site-footer {
+.site-main {
   width: 100%;
   max-width: 44rem;
   margin: 0 auto;
@@ -265,16 +358,31 @@ body {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem 1.5rem;
-  padding: 1.5rem max(1.25rem, calc((100% - 44rem) / 2)) 1.5rem;
+  /* the right padding keeps the corner cluster's space free, so the menu
+     wraps to a second row on narrow windows instead of running under it */
+  padding: 1.5rem max(15rem, calc((100% - 44rem) / 2)) 1.5rem max(1.25rem, calc((100% - 44rem) / 2));
   font-family: var(--font-mono);
   font-size: 0.85rem;
   letter-spacing: 0.04em;
+  pointer-events: none; /* the fade must not block the page beneath */
+}
+/* the fade: taller than the header itself, so the band dissolves slowly
+   instead of stopping at the menu's baseline */
+.site-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: -6rem;
+  z-index: -1;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--bg) 70%, transparent),
-    transparent
+    color-mix(in srgb, var(--bg) 78%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 55%, transparent) 40%,
+    color-mix(in srgb, var(--bg) 20%, transparent) 75%,
+    transparent 100%
   );
-  pointer-events: none; /* the gradient must not block the page beneath */
 }
 .site-header > * {
   pointer-events: auto;
@@ -282,9 +390,60 @@ body {
 .site-name {
   white-space: nowrap;
 }
-/* the header is out of flow, so the page starts below it */
+/* First load, in the same order as a page change: the whole backdrop
+   (pictures, decoration, dots) fades in together, the content holds back
+   a moment and follows. */
+@keyframes content-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.site-bg,
+.sky {
+  animation: content-in 1.2s ease both;
+}
+/* the decoration rests at its own, lower opacity, so it gets its own ramp */
+@keyframes decor-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.75;
+  }
+}
+.decor {
+  animation: decor-in 1.2s ease both;
+}
 .site-main {
+  animation: content-in 0.7s ease 0.6s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-bg,
+  .decor,
+  .sky,
+  .site-main {
+    animation: none;
+  }
+}
+/* the column between the fixed header and footer; its content may not
+   exceed it, a reading panel scrolls inside instead */
+.site-main {
+  height: 100dvh;
   padding-top: 5.5rem;
+  padding-bottom: 5rem;
+  overflow: hidden;
+  /* one grid cell: a page, and during a change the leaving page as well,
+     share it, so they crossfade in place with no positioning at all */
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+.site-main > * {
+  grid-area: 1 / 1;
+  min-height: 0;
+  max-height: 100%;
 }
 .site-nav::before {
   content: "";
@@ -314,21 +473,39 @@ body {
   color: var(--accent);
 }
 
-.site-main {
-  flex: 1;
-  padding-bottom: 4rem;
-}
-
+/* fixed to the bottom, mirror of the header */
 .site-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-top: 1px solid var(--line);
+  padding: 1.25rem max(1.25rem, calc((100% - 44rem) / 2)) 1.25rem;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--muted);
+  pointer-events: none;
+}
+.site-footer::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: -5rem;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--bg) 78%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 50%, transparent) 45%,
+    transparent 100%
+  );
+}
+.site-footer > * {
+  pointer-events: auto;
 }
 .site-footer__links {
   display: flex;
@@ -339,14 +516,25 @@ body {
 }
 
 /* Home: one screen, text centred in the empty sky */
-.site--home .site-main {
-  display: flex;
-  align-items: center;
-}
 .hero {
-  width: 100%;
+  align-self: center;
   text-align: center;
-  padding: 2vh 0 8vh;
+  padding: 0 0 4vh;
+}
+/* short windows: tighten the hero so it still fits without scrolling */
+@media (max-height: 720px) {
+  .hero__name {
+    font-size: clamp(2rem, 5.5vw, 3.2rem);
+    margin-bottom: 0.9rem;
+  }
+  .hero__tagline {
+    margin-bottom: 1.2rem;
+  }
+  .hero__switch,
+  .hero__roles,
+  .hero__links {
+    margin-bottom: 1.4rem;
+  }
 }
 .hero__name {
   margin: 0 0 1.25rem;
@@ -413,6 +601,33 @@ body {
   color: var(--muted);
 }
 
+/* Reading pages: a cover glass over the column. A light blur and a faint
+   tint of the page colour, a hairline edge, no shine: the dots and the
+   picture stay present behind the text without pulling at the eye. */
+.panel {
+  overflow-y: auto; /* the one scrolling thing on the site */
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  padding: 1.75rem 2.25rem 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 58%, transparent);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  transition:
+    background var(--mode-fade) ease,
+    border-color var(--mode-fade) ease;
+}
+.panel .page-title {
+  margin-top: 0.25rem;
+}
+@media (max-width: 640px) {
+  .panel {
+    padding: 1.25rem 1.1rem 1.5rem;
+  }
+}
+
 /* Inner pages */
 .page-title {
   margin: 1.5rem 0 1.5rem;
@@ -433,6 +648,12 @@ body {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--muted);
+}
+/* "25 Nov 2026 · Luzern" */
+.post__location::before {
+  content: "·";
+  margin-right: 0.75rem;
+  opacity: 0.6;
 }
 .tag::before {
   content: "#";
@@ -494,6 +715,95 @@ body {
 }
 .post-nav a {
   text-decoration: none;
+}
+
+/* Expeditions: one row per project, thumbnail left, text right */
+.projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.project {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 1.25rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--line);
+}
+.project:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.project__image {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+}
+.project__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.project__body {
+  grid-column: 2;
+  min-width: 0;
+}
+.project:not(:has(.project__image)) .project__body {
+  grid-column: 1 / -1;
+}
+.project__title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0 0 0.4rem;
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.project__title a {
+  text-decoration: none;
+}
+.project__year {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.project__text {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.project__meta,
+.project__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.project__links {
+  margin-top: 0.4rem;
+}
+.project__links a {
+  text-decoration: none;
+  color: var(--accent);
+}
+@media (max-width: 560px) {
+  .project {
+    grid-template-columns: 1fr;
+  }
+  .project__image {
+    max-width: 12rem;
+  }
+  .project__body {
+    grid-column: 1;
+  }
 }
 
 /* Rendered markdown */
@@ -601,65 +911,95 @@ body {
 .site-nav a:hover {
   border-bottom-color: currentColor;
 }
-.sound-toggle {
+/* a plain fade for things that come and go with the route, like the
+   corner's small mode switch, which the home screen does not carry */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 1s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* the corner cluster: mode switch and sound, upper right of the window */
+.corner {
   position: fixed;
   top: 1.5rem;
   right: 1.5rem;
   z-index: 2;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.5em;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: 400 0.85rem var(--font-mono);
-  letter-spacing: 0.04em;
-  line-height: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.2s;
+  gap: 1.4rem;
 }
-/* phones: the header can wrap to two rows, so the switch takes the bottom
+/* narrow windows: the menu wraps under the name, so the page starts lower */
+@media (max-width: 780px) {
+  .site-main {
+    padding-top: 7rem;
+  }
+}
+/* phones: the header can wrap to two rows, so the cluster takes the bottom
    corner and the footer links make room for it */
 @media (max-width: 640px) {
-  .sound-toggle {
+  .corner {
     top: auto;
     bottom: 1.5rem;
     right: 1.25rem;
   }
   .site-footer {
-    padding-right: 4.5rem;
+    padding-right: 9rem;
   }
   .site-main {
     padding-top: 7rem;
+    padding-bottom: 4.5rem;
   }
   .site-nav::before {
     display: none; /* the menu starts its own row here */
   }
+  .site-header {
+    padding-right: 1.25rem; /* the cluster sits at the bottom on phones */
+  }
 }
-.sound-toggle:hover,
-.sound-toggle.is-on {
+/* Sound: the mode switch's label and a single disc the size of its track,
+   no travel. Off: a hollow ring. On: the accent disc, breathing. */
+.sound-toggle .mode-switch__label {
+  color: var(--muted);
+}
+.sound-toggle.is-on .mode-switch__label {
   color: var(--text);
 }
-.sound-toggle__dot {
-  width: 0.5em;
-  height: 0.5em;
+.sound-toggle__disc {
+  width: var(--h);
+  height: var(--h);
   border-radius: 50%;
-  border: 1px solid currentColor;
-  transition: background 0.2s;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent);
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
-.sound-toggle.is-on .sound-toggle__dot {
+.sound-toggle:hover .sound-toggle__disc {
+  border-color: var(--accent);
+}
+.sound-toggle.is-on .sound-toggle__disc {
   background: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 0 calc(var(--h) * 0.5) color-mix(in srgb, var(--accent) 55%, transparent);
   animation: sound-pulse 2.4s ease-in-out infinite;
+}
+.sound-toggle:focus-visible .sound-toggle__disc {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 @keyframes sound-pulse {
   50% {
-    opacity: 0.35;
+    opacity: 0.5;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sound-toggle.is-on .sound-toggle__dot {
+  .sound-toggle.is-on .sound-toggle__disc {
     animation: none;
   }
 }

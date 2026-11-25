@@ -7,7 +7,7 @@
  * - Dark loops Pitch Black. Light plays the City Sundown intro once, then
  *   its loop, handed over on the intro's `ended` event.
  * - A mode switch is a real crossfade: both tracks sound at once for
- *   MODE_FADE_MS on an equal-power curve. On and off fade over TOGGLE_FADE_MS.
+ *   MODE_FADE_MS (8s, like every other mode fade) on an equal-power curve. On and off fade over TOGGLE_FADE_MS.
  * - Tracks resume where they were paused. A loop that has never played
  *   starts somewhere in its middle, so a track with a silent head (Pitch
  *   Black) never opens on silence.
@@ -21,8 +21,8 @@ type Mode = "light" | "dark";
 
 const STORAGE_KEY = "ub:sound";
 const VOLUME = 0.5;
-const TOGGLE_FADE_MS = 1500;
-const MODE_FADE_MS = 5000;
+const TOGGLE_FADE_MS = 2500;
+const MODE_FADE_MS = 8000; // the same 8s as --mode-fade in main.css
 const FADE_STEP_MS = 50;
 
 // One file per step; the loop step repeats, the others play once.

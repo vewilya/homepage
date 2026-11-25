@@ -15,7 +15,7 @@ useSeoMeta({ description: page.value.description });
 </script>
 
 <template>
-  <article v-if="page">
+  <article v-if="page" class="panel">
     <h1 class="page-title">{{ page.title }}</h1>
     <div class="prose">
       <ContentRenderer :value="page" />

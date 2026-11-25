@@ -18,7 +18,9 @@ Reference project: `/Users/ursbollhalder/Dev/susanneabbuehl`
   - links: GitHub, LinkedIn (X later)
 - `/thoughts` — the blog: all posts, newest first
 - `/thoughts/<slug>` — one post, rendered from markdown
-- `/projects` — exists, not linked from the nav yet, shows nothing for now
+- `/expeditions` — the projects, imported from the original Vue site
+  (branch `origin/vue-app`, `src/data/showcaseProjects.ts`); one markdown
+  file each in `content/projects/`, shown only while `active: true`
 
 ## Two modes
 
@@ -38,8 +40,9 @@ and `audio/` folders):
   so a first start lands somewhere in the middle, never at the head
 - Light track: `audio/city-sundown-intro.m4a` once (first play), then
   `audio/city-sundown-loop.m4a` looping seamlessly
-- A mode switch crossfades both tracks over 5s (equal power); tracks resume
-  where they were paused. Pictures, veil and colours fade over 4s.
+- A mode switch crossfades both tracks over 8s (equal power); tracks resume
+  where they were paused. Pictures, veil and colours fade over 8s; a page
+  change fades the picture over 6s and holds the content back 0.6s.
 
 - Dark: dark sky with clouds, nebula, lightning; pointer particles over the UI.
 - Light: sunny, flowers, butterflies, shooting stars.
@@ -99,10 +102,13 @@ with `CNAME` inside. Push to `master` deploys.
       sets `data-theme`, CSS, pictures and music follow with a 2.5s crossfade (Claude)
 - [x] 11. `SkyCanvas` with the loop, resize, reduced-motion, pointer tracking;
       first effect: ambient dot-grid noise (`utils/sky/dotGrid.ts`) (Claude)
-- [ ] 12. Pointer-reactive effect
-- [x] 13. Mode-specific effects (Urs, 25 Nov 2026): dark keeps the grid
-      pulse — mathematics, geometry. Light gets butterflies — subtle but a bit
-      erratic, creativity and free-flowing ideas (`utils/sky/butterflies.ts`,
-      they also shy away from the pointer) (Claude)
+- [x] 12. Pointer-reactive effect: Conway's Game of Life on the lattice,
+      seeded by clicks (`utils/sky/gameOfLife.ts`); cells carry energy so
+      colonies fade after ~12s (Claude). Tried and dropped before it: a hover
+      wake (felt like drawing) and a click ripple (Urs, 25 Nov 2026)
+- [x] 13. Mode-specific effects: decided against (Urs, 25 Nov 2026). The
+      grid pulse is the same in both modes; only the colour follows the mode
+      and the day side is a little stronger over the cream veil. Butterflies
+      and dot swarms were tried and dropped.
 - [x] 14. `useAmbientAudio` + sound toggle, one track per theme, crossfade (Claude)
 - [ ] 15. More effects, one at a time: clouds, lightning, butterflies, flowers

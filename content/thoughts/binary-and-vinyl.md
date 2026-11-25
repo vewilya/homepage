@@ -1,22 +1,15 @@
 ---
 title: Binary and vinyl
 date: 2026-11-25
+location: Lucerne
 description: Where I come from, and why this site sits between a record collection and a compiler.
 tags: [about, sound, code]
 ---
 
-I grew up as the son of a programmer and a music enthusiast. One of them left
-programming languages lying around the house, the other a vast record
-collection. Both got picked up early, and neither was ever put down.
+Growing up as the son of a computer programmer and a music enthusiast, I was exposed to programming languages and a vast record collection from a young age. This upbringing ignited my deep appreciation for both binary code and music.
 
-The place I feel most at home is where the two meet. Music and technology are
-often treated as opposites, one all feeling and the other all logic. I have
-never found that true. The most enchanting ideas I know came from holding both
-at once, and bridging them is what I keep coming back to.
+I feel most comfortable and inspired when combining the creative arts and technology, constantly striving to generate innovative, impactful, and enchanting ideas.
 
-My foundation is in music: piano performance and composition, summa cum laude.
-What I do today is called audio artist and developer, which is a long way of
-saying that a creative mind and a pair of trained ears make the decisions, and
-code carries them out.
+My foundations are in the creative arts: music, and an insight into how a human being creates. The second, a love for mathematics and code, arrived later and all the deeper for it. Today, as an artist and developer, I rely on my creative mindset, keen eyes and ears to guide my decisions in various projects.
 
 This site is where I write about that. Transmissions from the overlap.

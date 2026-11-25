@@ -1,10 +1,11 @@
 import type { Effect, Frame } from "./types";
-import { hash2 } from "./types";
+import { LATTICE, hash2 } from "./types";
 
 /**
  * Ambient dot-grid noise: a lattice of tiny dots, almost all dark, where a
  * few blink softly in slowly drifting patches. Film grain snapped to a grid.
- * Dark mode only: it fades with the mode value, light mode has butterflies.
+ * The same in both modes; only the colour follows the mode crossfade, and
+ * the day side is a little stronger to show through the cream veil.
  *
  * Each cell has a fixed random phase and speed (set on resize); the patch
  * term makes neighbouring cells wake up together so the activity wanders
@@ -14,15 +15,17 @@ import { hash2 } from "./types";
 export type DotGridOptions = {
   spacing?: number; // CSS px between dots
   size?: number; // dot edge in CSS px
-  maxAlpha?: number; // brightest a dot gets
+  maxAlpha?: number; // brightest a dot gets at night
+  maxAlphaLight?: number; // and by day, over the cream veil
   minSpeed?: number; // rad/s: a cell blinks once per (2π / speed) seconds
   maxSpeed?: number;
 };
 
 export const createDotGrid = (options: DotGridOptions = {}): Effect => {
-  const spacing = options.spacing ?? 16;
-  const size = options.size ?? 1.5;
+  const spacing = options.spacing ?? LATTICE.spacing;
+  const size = options.size ?? LATTICE.size;
   const maxAlpha = options.maxAlpha ?? 0.45;
+  const maxAlphaLight = options.maxAlphaLight ?? 0.75;
   const minSpeed = options.minSpeed ?? 0.3;
   const maxSpeed = options.maxSpeed ?? 1.0;
 
@@ -46,8 +49,11 @@ export const createDotGrid = (options: DotGridOptions = {}): Effect => {
   };
 
   const draw = ({ ctx, time, dark }: Frame) => {
-    const strength = maxAlpha * dark; // gone in light mode
-    if (strength < 0.01) return;
+    const strength = maxAlphaLight + (maxAlpha - maxAlphaLight) * dark;
+    // cream dots at night, navy by day; the mix follows the mode crossfade
+    const r = Math.round(29 + (239 - 29) * dark);
+    const g = Math.round(52 + (230 - 52) * dark);
+    const b = Math.round(73 + (214 - 73) * dark);
     const half = size / 2;
     for (let y = 0; y < rows; y++) {
       // slow drifting patches: one sine in each axis, offset in time
@@ -59,7 +65,7 @@ export const createDotGrid = (options: DotGridOptions = {}): Effect => {
         const patch = 0.5 + 0.5 * Math.sin(x * 0.35 + time * 0.15) * py;
         const alpha = Math.pow(blink, 6) * patch * patch * strength;
         if (alpha < 0.02) continue;
-        ctx.fillStyle = `rgba(239,230,214,${alpha.toFixed(3)})`; // cream, night only
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
         ctx.fillRect(x * spacing - half, y * spacing - half, size, size);
       }
     }

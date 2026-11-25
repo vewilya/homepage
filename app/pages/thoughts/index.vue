@@ -8,7 +8,7 @@ const posts = computed(() => (data.value ?? []).filter((p) => !p.draft));
 </script>
 
 <template>
-  <div>
+  <div class="panel">
     <h1 class="page-title">transmissions</h1>
     <PostList :posts="posts" grouped />
   </div>
