@@ -39,13 +39,10 @@ const {
   enabled: sound,
   pending: soundPending,
   nowPlaying,
-  artist,
   toggle: toggleSound,
 } = useAmbientAudio();
 // the radio display's line: what plays, or what the visitor has to do first
-const radioLine = computed(() =>
-  soundPending.value ? "touch to start" : nowPlaying.value ? `${nowPlaying.value} · ${artist}` : "",
-);
+const radioLine = computed(() => (soundPending.value ? "touch to start" : nowPlaying.value));
 </script>
 
 <template>

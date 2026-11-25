@@ -1,6 +1,6 @@
 import type { Effect, Frame } from "./types";
 import { LATTICE, hash2 } from "./types";
-import { sampleHighOnset, sampleLevel } from "./spectrum";
+import { sampleLevel } from "./spectrum";
 
 /**
  * The one dot lattice behind the page, with three things going on in it.
@@ -11,9 +11,9 @@ import { sampleHighOnset, sampleLevel } from "./spectrum";
  * follows the mode crossfade, the day side a little stronger over the veil.
  *
  * Music: the grain is the music's. In silence the grid is dark; the loudness
- * brings it up, so it breathes with the track, and a transient in the
- * treble makes the lit dots flicker for a moment, each a little brighter
- * or dimmer frame by frame. Silence leaves the ambient alone.
+ * brings it up, so the grain breathes with the track; by day the dots also
+ * warm from navy towards the sun's red-orange as it gets loud, while the
+ * night's cream stays cream.
  *
  * Life: a click or a drag drops a colony of Conway's Game of Life onto the
  * same cells. Live cells are the grid's own dots held bright, still
@@ -29,43 +29,30 @@ export type LivingGridOptions = {
   maxAlphaLight?: number; // and by day, over the cream veil
   minSpeed?: number; // rad/s: a cell blinks once per (2π / speed) seconds
   maxSpeed?: number;
-  musicGain?: number; // loudness at which the grain is at full strength (lower = sooner)
+  musicGain?: number; // the grain's floor while music plays, 0..1; it rises to 1 with the level
   generationsPerSecond?: number;
   lifespan?: number; // generations a cell lives at most
   seedRadius?: number;
   seedDensity?: number;
   lifeAlpha?: number; // a live cell's brightness
-  flickerThreshold?: number; // treble onset (0..1) that sets the dots flickering
-  flickerDecay?: number; // seconds for a flicker to die down
 };
 
-/** Dev readings: what the music is doing and how many bolts have struck. */
-export const debug = {
-  level: 0,
-  onset: 0,
-  get struck() {
-    return struck;
-  },
-};
-let struck = 0;
+/** Dev reading: the music's presence the grid is drawn at. */
+export const debug = { level: 0 };
 
 export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
   const spacing = o.spacing ?? LATTICE.spacing;
   const size = o.size ?? LATTICE.size;
   const maxAlpha = o.maxAlpha ?? 0.45;
-  const maxAlphaLight = o.maxAlphaLight ?? 0.75;
+  const maxAlphaLight = o.maxAlphaLight ?? 1; // navy on a bright picture needs all of it
   const minSpeed = o.minSpeed ?? 0.3;
   const maxSpeed = o.maxSpeed ?? 1.0;
-  const musicGain = o.musicGain ?? 0.55;
+  const musicGain = o.musicGain ?? 0.3;
   const stepSeconds = 1 / (o.generationsPerSecond ?? 7);
   const lifespan = o.lifespan ?? 240; // ~35s at 7 generations a second
   const seedRadius = o.seedRadius ?? 3;
   const seedDensity = o.seedDensity ?? 0.45;
   const lifeAlpha = o.lifeAlpha ?? 0.95;
-  const flickerThreshold = o.flickerThreshold ?? 0.3;
-  const flickerDecay = o.flickerDecay ?? 0.3;
-  let flicker = 0; // how hard the lit dots flicker right now, 0..1
-  let tick = 0; // frame counter, salts the per-dot flicker
 
   let cols = 0;
   let rows = 0;
@@ -157,7 +144,7 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
           // creeps along whatever the ambient is lighting up right now
           v = (sum / 2) * 0.7 - drain;
         }
-        if (v <= 0 && e > 0) dying[i] = 1; // just died: start its fade
+        if (v <= 0 && e > 0) dying[i] = 0.15 + 0.85 * e; // just died: fade from where it was
         next[i] = v > 0 ? v : 0;
         if (v > 0) alive++;
       }
@@ -168,23 +155,14 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
   const draw = ({ ctx, time, dt, pointer, dark }: Frame) => {
     for (const c of pointer.clicks) seed(c.x, c.y);
     level = sampleLevel();
-    const onset = sampleHighOnset();
 
     // the ambient sine of every cell, kept for the life rule as well
     for (let i = 0; i < blink.length; i++) blink[i] = Math.sin(time * speed[i]! + phase[i]!);
 
-    // a treble hit sets the flicker going; it dies down on its own
-    if (onset > flickerThreshold && onset > flicker) {
-      flicker = onset;
-      struck++;
-    }
-    flicker *= Math.exp(-dt / flickerDecay);
-    tick++;
     debug.level = level;
-    debug.onset = onset;
 
     let fading = false;
-    const fadeK = Math.exp(-dt / 0.35);
+    const fadeK = Math.exp(-dt / 0.9); // a death is a slow dimming, not a blink-out
     for (let i = 0; i < dying.length; i++) {
       if (dying[i]! > 0.02) {
         dying[i]! *= fadeK;
@@ -199,13 +177,18 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
       }
     } else accumulator = 0;
 
-    // silence: no grain at all; the music brings it up to full by musicGain
-    const presence = Math.min(1, level / musicGain);
+    // silence: no grain at all; playing, the level is the track's own loudness
+    // between its measured floor and peak (spectrum.ts), over a floor of musicGain
+    const presence = level < 0.01 ? 0 : Math.min(1, musicGain + (1 - musicGain) * level);
     const strength = (maxAlphaLight + (maxAlpha - maxAlphaLight) * dark) * presence;
-    // cream dots at night, navy by day; the mix follows the mode crossfade
-    const r = Math.round(29 + (239 - 29) * dark);
-    const g = Math.round(52 + (230 - 52) * dark);
-    const b = Math.round(73 + (214 - 73) * dark);
+    // cream dots at night; by day navy that warms to the sun's red-orange
+    // (#c9461f) the louder the music; the mix follows the mode crossfade
+    const warm = Math.pow(level, 1.3) * (1 - dark);
+    const mix = (day: number, night: number, hot: number) =>
+      Math.round(day * (1 - warm - dark) + hot * warm + night * dark);
+    const r = mix(29, 239, 201);
+    const g = mix(52, 230, 70);
+    const b = mix(73, 214, 31);
     const half = size / 2;
     for (let y = 0; y < rows; y++) {
       // slow drifting patches: one sine in each axis, offset in time
@@ -218,16 +201,15 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
         if (s > 0.6) {
           const patch = 0.5 + 0.5 * Math.sin(x * 0.35 + time * 0.15) * py;
           alpha = Math.pow(s, 6) * patch * patch * strength;
-          // the flicker: each lit dot jumps up or down by its own random
-          // amount, a new amount every frame, as hard as the hit was
-          if (flicker > 0.02) alpha *= 1 + flicker * (hash2(x + tick * 7, y + tick * 3) * 2.4 - 1);
         }
         if (e > 0) {
           // alive: the grid's dot held bright, still breathing with its blink
+          // brightness follows the cell's energy all the way down, so a colony
+          // dims as it ages and its death is only the last step of that
           const breath = 0.7 + 0.3 * Math.max(0, s);
-          alpha = Math.max(alpha, (0.4 + 0.6 * e) * lifeAlpha * breath);
+          alpha = Math.max(alpha, (0.15 + 0.85 * e) * lifeAlpha * breath);
         } else if (dying[i]! > 0.02) {
-          alpha = Math.max(alpha, dying[i]! * 0.6 * lifeAlpha);
+          alpha = Math.max(alpha, dying[i]! * lifeAlpha);
         }
         if (alpha < 0.02) continue;
         ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(3)})`;

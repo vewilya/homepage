@@ -17,27 +17,87 @@ const asset = (path: string) => (path.startsWith("/") ? base + path : path);
 const started = ref(!props.poster);
 const start = () => {
   started.value = true;
-  if (sound.value) void toggleSound();
+  hush();
 };
 
-// The site's music must not play over a video. A click inside the player
-// moves focus into its iframe, which the page sees as a window blur with
-// the iframe active, so that is the moment to switch the music off.
+// The site's music must not play over a video, and comes back when the
+// video pauses, ends or goes away, if it was the video that silenced it.
+// The players say what they do over postMessage (YouTube with enablejsapi,
+// Vimeo once asked), and a click into the iframe, seen as a window blur
+// with the iframe active, hushes the music before the player even answers.
 const frame = ref<HTMLIFrameElement>();
 const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
+let hushed = false; // we switched the music off, so we may switch it back on
+const hush = () => {
+  if (!sound.value) return;
+  hushed = true;
+  void toggleSound();
+};
+const unhush = () => {
+  if (!hushed || sound.value) return;
+  hushed = false;
+  void toggleSound();
+};
 const onBlur = () => {
-  if (document.activeElement === frame.value && sound.value) void toggleSound();
+  if (document.activeElement === frame.value) hush();
+};
+const isVimeo = computed(() => /vimeo\.com/.test(props.src));
+const onMessage = (e: MessageEvent) => {
+  if (!frame.value || e.source !== frame.value.contentWindow) return;
+  let data: unknown = e.data;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return;
+    }
+  }
+  if (!data || typeof data !== "object") return;
+  const msg = data as { event?: string; info?: unknown; method?: string };
+  if (isVimeo.value) {
+    // Vimeo: after "ready", ask for the events we care about
+    if (msg.event === "ready") {
+      for (const value of ["play", "pause", "ended"])
+        frame.value.contentWindow?.postMessage({ method: "addEventListener", value }, "*");
+    } else if (msg.event === "play") hush();
+    else if (msg.event === "pause" || msg.event === "ended") unhush();
+  } else {
+    // YouTube: state 1 is playing, 2 paused, 0 ended
+    const state =
+      msg.event === "onStateChange"
+        ? (msg.info as number)
+        : msg.event === "infoDelivery"
+          ? (msg.info as { playerState?: number } | undefined)?.playerState
+          : undefined;
+    if (state === 1) hush();
+    else if (state === 2 || state === 0) unhush();
+  }
+};
+// YouTube only talks once the page has said it is listening
+const listenToYouTube = () => {
+  if (isVimeo.value || !frame.value?.contentWindow) return;
+  frame.value.contentWindow.postMessage(
+    JSON.stringify({ event: "listening", id: 1, channel: "widget" }),
+    "*",
+  );
 };
 onMounted(() => {
   addEventListener("blur", onBlur);
-  if (props.autoplay && sound.value) void toggleSound(); // starts on its own
+  addEventListener("message", onMessage);
+  if (props.autoplay) hush(); // starts on its own
 });
-onBeforeUnmount(() => removeEventListener("blur", onBlur));
+watch(frame, (el) => el?.addEventListener("load", listenToYouTube));
+onBeforeUnmount(() => {
+  removeEventListener("blur", onBlur);
+  removeEventListener("message", onMessage);
+  unhush(); // the player is gone: the music may come back
+});
 
 const player = computed(() => {
   const yt = props.src.match(/(?:v=|youtu\.be\/)([\w-]+)/);
   const auto = props.autoplay || props.poster ? "&autoplay=1" : "";
-  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0${auto}`;
+  // enablejsapi: the player reports play and pause over postMessage
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0&enablejsapi=1${auto}`;
   const vimeo = props.src.match(/vimeo\.com\/(\d+)/);
   // transparent=0: the player paints its own black behind the picture
   if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}?dnt=1&transparent=0${auto}`;

@@ -27,7 +27,8 @@
  * context needs a user gesture on most browsers, which the armed state
  * already provides.
  */
-import { attachAnalyser } from "~/utils/sky/spectrum";
+import { attachAnalyser, setProfile } from "~/utils/sky/spectrum";
+import { LIBRARY, type AudioFile } from "~/utils/audioLibrary";
 
 type Mode = "light" | "dark";
 
@@ -37,18 +38,22 @@ const TOGGLE_FADE_MS = 2500;
 const MODE_FADE_MS = 8000; // the same 8s as --mode-fade in main.css
 const FADE_STEP_MS = 50;
 
-// One file per step; the loop step repeats, the others play once.
-const PLAYLISTS: Record<Mode, { src: string; loop: boolean }[]> = {
-  dark: [{ src: "/audio/pitch-black.m4a", loop: true }],
-  light: [
-    { src: "/audio/city-sundown-intro.m4a", loop: false },
-    { src: "/audio/city-sundown-loop.m4a", loop: true },
-  ],
-};
-const TITLES: Record<Mode, string> = { dark: "Darklings", light: "City Sundown" };
-const ALBUMS: Record<Mode, string> = {
-  dark: "Ghosts in the Machines",
-  light: "Soundscapes for Modern Superheroes",
+/**
+ * The music comes from the library (app/utils/audioLibrary.ts, generated
+ * from the masters by scripts/audio-library.py). Each visit picks one track
+ * per mode at random. A dark track is a set of versions of the same piece:
+ * one plays, and eight seconds before its end another version comes in
+ * at a random point and takes over on a crossfade, so the music never
+ * stops and never restarts; a track with a single version simply loops. A
+ * light track is a first play followed by a loop that joins it seamlessly.
+ */
+type Meta = { title: string; album: string; file: AudioFile; versions?: HTMLAudioElement[] };
+const meta = new WeakMap<HTMLAudioElement, Meta>();
+const handed = new WeakSet<HTMLAudioElement>(); // dark versions that have passed the baton
+const HANDOFF_S = 8; // seconds before a version's end that the next one comes in
+const pick = <T>(list: T[], not?: T): T => {
+  const pool = list.length > 1 && not !== undefined ? list.filter((x) => x !== not) : list;
+  return pool[(Math.random() * pool.length) | 0]!;
 };
 const ARTIST = "Urs Bollhalder";
 
@@ -63,8 +68,22 @@ const RESUME_WAIT_MS = 800; // how long a blocked audio context may keep us wait
 // still the latest before touching anything, so quick toggles cannot interleave.
 let session = 0;
 const played = new WeakSet<HTMLAudioElement>(); // has started at least once
-// one gain node per element, the element itself always at full volume
+// Where the element's own volume works, that is what the fades drive: it is
+// the one path every desktop browser gets right, and it keeps clear of a
+// Safari fault where an element routed into a graph made while playback was
+// blocked plays straight to the output, past the gain, at full level. Only
+// where the volume property is ignored (iOS) does a gain node per element
+// take over. The graph is built either way, for the sky's analyser.
 let ctx: AudioContext | undefined;
+let volumeWorks: boolean | undefined;
+const probeVolume = () => {
+  if (volumeWorks === undefined) {
+    const probe = new Audio();
+    probe.volume = 0.5;
+    volumeWorks = probe.volume === 0.5;
+  }
+  return volumeWorks;
+};
 let analyser: AnalyserNode | undefined; // after the gains: the sky reads what is heard
 const gains = new WeakMap<HTMLAudioElement, GainNode>();
 const level = (el: HTMLAudioElement) => gains.get(el)?.gain.value ?? el.volume;
@@ -91,45 +110,83 @@ const readMode = (): Mode => {
 };
 
 const buildPlayers = (base: string) => {
-  const make = (steps: { src: string; loop: boolean }[]) =>
-    steps.map((step, i) => {
-      const el = new Audio(base + step.src);
-      el.loop = step.loop;
-      el.preload = "none"; // fetched only once it is about to play
-      if ("AudioContext" in window) {
-        ctx ??= new AudioContext();
-        if (!analyser) {
-          analyser = ctx.createAnalyser();
-          analyser.fftSize = 512;
-          analyser.smoothingTimeConstant = 0.7;
-          analyser.connect(ctx.destination);
-          attachAnalyser(analyser);
-        }
-        const gain = ctx.createGain();
-        gain.gain.value = 0;
-        ctx.createMediaElementSource(el).connect(gain).connect(analyser);
-        gains.set(el, gain);
-      } else {
-        el.volume = 0;
+  const make = (file: AudioFile, loop: boolean, m: Omit<Meta, "file">) => {
+    const el = new Audio(base + file.src);
+    el.loop = loop;
+    el.preload = "none"; // fetched only once it is about to play
+    if ("AudioContext" in window) {
+      ctx ??= new AudioContext();
+      if (!analyser) {
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.7;
+        analyser.connect(ctx.destination);
+        attachAnalyser(analyser);
       }
-      if (step.loop && i === 0) randomStart.add(el); // no intro before it
-      return el;
+      const gain = ctx.createGain();
+      ctx.createMediaElementSource(el).connect(gain).connect(analyser);
+      if (probeVolume()) {
+        gain.gain.value = 1; // the element's volume does the fading
+        el.volume = 0;
+      } else {
+        gain.gain.value = 0; // iOS: the gain does, the element stays at full
+        gains.set(el, gain);
+      }
+    } else {
+      el.volume = 0;
+    }
+    meta.set(el, { ...m, file });
+    return el;
+  };
+
+  // dark: a random track, all its versions; one version loops on its own
+  const dark = pick(LIBRARY.dark);
+  const single = dark.versions.length === 1;
+  const versions = dark.versions.map((f) =>
+    make(f, single, { title: dark.title, album: dark.album }),
+  );
+  for (const el of versions) {
+    meta.get(el)!.versions = versions;
+    if (single) {
+      randomStart.add(el); // a loop with a silent head never opens on it
+      continue;
+    }
+    // the baton: shortly before the end, another version comes in somewhere
+    // in its middle and the two cross over, which is as good as unnoticed
+    el.addEventListener("timeupdate", () => {
+      if (current !== el || handed.has(el) || !el.duration) return;
+      if (el.duration - el.currentTime > HANDOFF_S) return;
+      handed.add(el);
+      const next = pick(versions, el);
+      void (async () => {
+        await ready(next);
+        next.currentTime = (0.2 + 0.4 * Math.random()) * next.duration;
+        active!.dark = next;
+        await transition(next, HANDOFF_S * 1000);
+      })();
     });
-  const built = { dark: make(PLAYLISTS.dark), light: make(PLAYLISTS.light) };
-  active = { dark: built.dark[0]!, light: built.light[0]! };
-  // intro -> loop handoff: warm the next file while this one plays
-  for (const [mode, list] of Object.entries(built) as [Mode, HTMLAudioElement[]][]) {
-    list.forEach((el, i) => {
-      const next = list[i + 1];
-      if (!next) return;
-      el.addEventListener("playing", () => (next.preload = "auto"), { once: true });
-      el.addEventListener("ended", () => {
-        active![mode] = next;
-        // straight in at full volume, the files are cut to join
-        if (current === el) void transition(next, 0);
-      });
-    });
+    el.addEventListener("ended", () => handed.delete(el)); // may take the baton again later
+    el.addEventListener(
+      "playing",
+      () => versions.forEach((v) => v !== el && (v.preload = "auto")),
+      {
+        once: true,
+      },
+    );
   }
+
+  // light: a random track, its first play then its loop, joined on `ended`
+  const light = pick(LIBRARY.light);
+  const intro = make(light.intro, false, { title: light.title, album: light.album });
+  const loop = make(light.loop, true, { title: light.title, album: light.album });
+  intro.addEventListener("playing", () => (loop.preload = "auto"), { once: true });
+  intro.addEventListener("ended", () => {
+    active!.light = loop;
+    if (current === intro) void transition(loop, 0); // straight in, the files are cut to join
+  });
+
+  const built = { dark: versions, light: [intro, loop] };
+  active = { dark: versions[0]!, light: intro };
   if (import.meta.dev) {
     const w = window as unknown as { __ambient: typeof built; __ambientLevel: typeof level };
     w.__ambient = built;
@@ -211,6 +268,8 @@ const play = async (el: HTMLAudioElement) => {
       throw new DOMException("audio context suspended", "NotAllowedError");
   }
   await el.play(); // throws NotAllowedError without a user gesture
+  const m = meta.get(el);
+  if (m) setProfile(m.file.profile, VOLUME); // the sky reads this file by its own measure
 };
 
 /**
@@ -261,12 +320,13 @@ export const useAmbientAudio = () => {
   };
 
   /** What lock screens and system players show while the music plays. */
-  const announce = (mode: Mode) => {
+  const announce = (el: HTMLAudioElement) => {
     if (!("mediaSession" in navigator)) return;
+    const m = meta.get(el);
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: TITLES[mode],
+      title: m?.title ?? "",
       artist: ARTIST,
-      album: ALBUMS[mode],
+      album: m?.album ?? "",
       artwork: [
         { src: `${base}/icon-512.png`, sizes: "512x512", type: "image/png" },
         { src: `${base}/icon-1024.png`, sizes: "1024x1024", type: "image/png" },
@@ -281,7 +341,6 @@ export const useAmbientAudio = () => {
   const switchOn = async (ms = TOGGLE_FADE_MS) => {
     const mine = ++attempt;
     enabled.value = true; // the button answers at once, not after the fade
-    const mode = readMode();
     // the gesture listeners go on before the attempt, not after it fails:
     // a click during the first seconds, while the file still loads or the
     // browser still thinks about it, is a gesture too and must not be lost
@@ -295,7 +354,8 @@ export const useAmbientAudio = () => {
         "playing",
         () => {
           pending.value = false; // the light stops waiting the moment sound is there
-          nowPlaying.value = `${TITLES[mode]} · ${ALBUMS[mode]}`;
+          const m = meta.get(to);
+          nowPlaying.value = m ? `${m.title} · ${m.album}` : "";
           disarm();
         },
         { once: true },
@@ -304,7 +364,7 @@ export const useAmbientAudio = () => {
       if (mine !== attempt) return;
       pending.value = false;
       disarm();
-      announce(mode);
+      announce(to);
       localStorage.setItem(STORAGE_KEY, "on");
     } catch {
       if (mine !== attempt) return; // a newer attempt is on it

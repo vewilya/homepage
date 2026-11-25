@@ -12,13 +12,12 @@ const asset = (path: string) => baseURL + path;
 const host = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 
 // The videos play inline, one at a time, in a player that is only put on
-// the page when asked for (VideoEmbed, the same as in the posts). Opening
-// one fades the ambient music out so the two never play over each other.
-const { enabled: sound, toggle: toggleSound } = useAmbientAudio();
+// the page when asked for (VideoEmbed, the same as in the posts). The
+// player itself silences the ambient music while it plays and brings it
+// back when it pauses, ends or is closed.
 const showing = ref<string | null>(null);
 const show = (path: string) => {
   showing.value = showing.value === path ? null : path;
-  if (showing.value && sound.value) void toggleSound();
 };
 </script>
 
