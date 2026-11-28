@@ -7,7 +7,8 @@ import { LATTICE, hash2 } from "./types";
  * Ambient: every cell blinks on its own slow sine, and drifting patches make
  * neighbours wake together, so the activity wanders across the screen like
  * film grain snapped to a grid. The same in both modes; only the colour
- * follows the mode crossfade, the day side a little stronger over the veil.
+ * follows the mode crossfade: cream at night, by day the muted ink at half
+ * the strength, so the dots sit in the picture instead of on it.
  *
  * Music: the grain is the music's. In silence the grid is dark; the loudness
  * brings it up, so the grain breathes with the track; by day the dots also
@@ -37,7 +38,7 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
   const spacing = o.spacing ?? LATTICE.spacing;
   const size = o.size ?? LATTICE.size;
   const maxAlpha = o.maxAlpha ?? 0.45;
-  const maxAlphaLight = o.maxAlphaLight ?? 1; // navy on a bright picture needs all of it
+  const maxAlphaLight = o.maxAlphaLight ?? 0.5; // navy on the bright picture: half, or it is a hard speckle
   const minSpeed = o.minSpeed ?? 0.3;
   const maxSpeed = o.maxSpeed ?? 1.0;
   const musicGain = o.musicGain ?? 0.3;
@@ -85,17 +86,17 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
       const hot = hotDay * (1 - dark) + hotNight * dark;
       return Math.round(ink + (hot - ink) * warm);
     };
-    const r = mix(29, 239, 201, 239);
-    const g = mix(52, 230, 70, 106);
-    const b = mix(73, 214, 31, 60);
+    const r = mix(46, 239, 201, 239);
+    const g = mix(59, 230, 70, 106);
+    const b = mix(72, 214, 31, 60);
     const half = dot / 2;
     // a high hit: a scatter of cells lit for this frame, a new scatter each
     // frame while the hit lasts, so it crackles
     const tick = Math.floor(time * 25);
     const scatter = highHit > 0.05 ? sparkle * highHit : 0;
-    const sr = Math.round(239 * dark + 29 * (1 - dark));
-    const sg = Math.round(230 * dark + 52 * (1 - dark));
-    const sb = Math.round(214 * dark + 73 * (1 - dark));
+    const sr = Math.round(239 * dark + 46 * (1 - dark));
+    const sg = Math.round(230 * dark + 59 * (1 - dark));
+    const sb = Math.round(214 * dark + 72 * (1 - dark));
     for (let y = 0; y < rows; y++) {
       // slow drifting patches: one sine in each axis, offset in time
       const py = Math.sin(y * 0.3 - time * 0.11);
