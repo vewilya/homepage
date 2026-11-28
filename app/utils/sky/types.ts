@@ -3,19 +3,12 @@
  * `draw` and an optional `resize`, no Vue inside, so it can be run and
  * tested on its own.
  */
-export type Pointer = {
-  x: number; // CSS pixels from the left edge
-  y: number; // CSS pixels from the top edge
-  active: boolean; // false until the first move and after the pointer leaves
-};
-
 export type Frame = {
   ctx: CanvasRenderingContext2D;
   width: number; // CSS pixels; the context is already scaled for the device
   height: number;
   time: number; // seconds since the loop started
   dt: number; // seconds since the last drawn frame
-  pointer: Pointer;
   dark: number; // 0 in light mode, 1 in dark, in between during the crossfade
   level: number; // the music's presence, 0..1; 0 in silence (sampled once per frame)
 };

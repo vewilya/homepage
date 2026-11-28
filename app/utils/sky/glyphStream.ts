@@ -13,11 +13,10 @@ import { LATTICE, hash2 } from "./types";
  * to dot the way the grain does. Most of the time the tape is noise, digits
  * and marks from the instrument alphabet flickering in place; a window
  * drifting along each lane resolves the noise into the words for a moment
- * and lets them go again, and the pointer resolves whatever it rests on,
- * the tube swelling a little around it as it passes. The music drives the
- * rest: the louder the track, the faster the tapes climb, turn and flicker,
- * the wider the window that resolves into words, the brighter the type, and
- * the words warm towards the accent.
+ * and lets them go again. The music drives it: the louder the track, the
+ * faster the tapes climb, turn and flicker, the wider the window that
+ * resolves into words, the brighter the type, and the words warm towards
+ * the accent.
  *
  * Same geometry as SkyDecor's arc B, mapped the way the SVG's slice scaling
  * maps it, so the tube is threaded on the drawn line.
@@ -34,8 +33,6 @@ export type GlyphStreamOptions = {
   minSeconds?: number; // one trip from the bottom to the top, fastest lane
   maxSeconds?: number;
   spinSeconds?: number; // one turn of the helix about its axis, in silence
-  reach?: number; // px: this far from the pointer the tape is fully resolved
-  swell?: number; // cells: how much wider the tube is right at the pointer
   alphaDark?: number; // a resolved letter's brightness at night, on the near side
   alphaLight?: number; // and by day, navy over the bright picture
   fontSize?: number;
@@ -79,8 +76,6 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
   const maxSeconds = o.maxSeconds ?? 320;
   const spinSeconds = o.spinSeconds ?? 150;
   const flickerSeconds = o.flickerSeconds ?? 6;
-  const reach = o.reach ?? 70;
-  const swell = o.swell ?? 1.5;
   const alphaDark = o.alphaDark ?? 0.46;
   const alphaLight = o.alphaLight ?? 0.66;
   const fontSize = o.fontSize ?? 8;
@@ -157,7 +152,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
       fonts[d] = `${fontSize + d - 1}px "JetBrains Mono", ui-monospace, Menlo, monospace`;
   };
 
-  const draw = ({ ctx, time, dt, pointer, dark, level }: Frame) => {
+  const draw = ({ ctx, time, dt, dark, level }: Frame) => {
     if (!slots) return;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -213,14 +208,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
         // the cosine is the offset across the arc, the sine the depth
         const angle = phase + t * turns * TAU;
         const depth = Math.sin(angle); // -1 far side, 1 near side
-        // the pointer, measured against the axis: the tube swells around it
-        // and the tape resolves there
-        let touch = 0;
-        if (pointer.active) {
-          const d = Math.hypot(pointer.x - px[s]!, pointer.y - py[s]!);
-          touch = 1 - smooth(reach, reach * 2.6, d);
-        }
-        const r = (radius + flare * t + swell * touch) * spacing;
+        const r = (radius + flare * t) * spacing;
         const across = Math.cos(angle) * r;
         const x = Math.round((px[s]! + nx[s]! * across) / spacing) * spacing;
         const y = Math.round((py[s]! + ny[s]! * across) / spacing) * spacing;
@@ -228,10 +216,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
 
         const env = smooth(0, 0.08, t) * (1 - smooth(0.9, 1, t));
         if (env <= 0) continue;
-        const resolve = Math.max(
-          1 - smooth(halfWindow, halfWindow * 2, Math.abs(t - window)),
-          touch,
-        );
+        const resolve = 1 - smooth(halfWindow, halfWindow * 2, Math.abs(t - window));
         // noise changes on its own slow clock per cell, half to one and a
         // half times flickerSeconds, faster as it resolves and with the music
         const period = (flickerSeconds * (0.5 + hash2(k, li)) * (1 - 0.7 * resolve)) / pace;

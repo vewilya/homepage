@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Full-screen canvas behind the page content and over the pictures. Owns
- * the animation loop, the device-pixel scaling, the pointer position and
- * the mode value, and hands all of that to a list of effects each frame.
+ * the animation loop, the device-pixel scaling and the mode value, and
+ * hands all of that to a list of effects each frame.
  *
  * - Draws at most ~25 frames a second: ambient grain does not need more and
  *   it keeps laptops cool. requestAnimationFrame already pauses in hidden tabs.
@@ -12,7 +12,7 @@
  *   eased towards on the same curve and over the same 8s as the pictures'
  *   crossfade, so the dots recolour in step with everything behind them.
  */
-import type { Effect, Frame, Pointer } from "~/utils/sky/types";
+import type { Effect, Frame } from "~/utils/sky/types";
 import { createLivingGrid, debug as gridDebug } from "~/utils/sky/livingGrid";
 import { createGlyphStream } from "~/utils/sky/glyphStream";
 import { sampleLevel } from "~/utils/sky/spectrum";
@@ -44,9 +44,8 @@ onMounted(() => {
   const ctx = el.getContext("2d", { alpha: true })!;
   // one lattice: the ambient grain breathing with the music, and the
   // transmission, tapes of type spiralling up the decoration's arc on the
-  // same cells; the pointer resolves the tapes where it rests
+  // same cells
   const effects: Effect[] = [createLivingGrid(), createGlyphStream()];
-  const pointer: Pointer = { x: 0, y: 0, active: false };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
   let width = 0;
@@ -96,7 +95,6 @@ onMounted(() => {
       height,
       time: (now - startedAt) / 1000,
       dt,
-      pointer,
       dark,
       level,
     };
@@ -118,28 +116,11 @@ onMounted(() => {
     ctx.clearRect(0, 0, width, height);
   };
 
-  // the pointer's place, for the effects; a touch counts while the finger
-  // is down, a mouse until it leaves the page
-  const place = (e: PointerEvent) => {
-    pointer.x = e.clientX;
-    pointer.y = e.clientY;
-    pointer.active = true;
-  };
-  const onMove = (e: PointerEvent) => place(e);
-  const onDown = (e: PointerEvent) => place(e);
-  const onUp = (e: PointerEvent) => {
-    if (e.pointerType !== "mouse") pointer.active = false;
-  };
-  const onLeave = () => (pointer.active = false);
-
   // dev only: lets a browser session read what the loop is doing
   const stats = {
     drawMs: 0,
     get dark() {
       return dark;
-    },
-    get pointer() {
-      return pointer;
     },
     grid: gridDebug,
   };
@@ -148,21 +129,11 @@ onMounted(() => {
   resize();
   start();
   addEventListener("resize", resize);
-  addEventListener("pointermove", onMove, { passive: true });
-  addEventListener("pointerdown", onDown, { passive: true });
-  addEventListener("pointerup", onUp, { passive: true });
-  addEventListener("pointercancel", onUp, { passive: true });
-  document.addEventListener("pointerleave", onLeave);
   reduced.addEventListener("change", () => (reduced.matches ? stop() : start()));
 
   onBeforeUnmount(() => {
     stop();
     removeEventListener("resize", resize);
-    removeEventListener("pointermove", onMove);
-    removeEventListener("pointerdown", onDown);
-    removeEventListener("pointerup", onUp);
-    removeEventListener("pointercancel", onUp);
-    document.removeEventListener("pointerleave", onLeave);
   });
 });
 </script>
