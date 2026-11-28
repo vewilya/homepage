@@ -2,7 +2,7 @@
 title: Downbeat
 date: 2026-11-04
 location: Lucerne
-description: A companion app that guides music students through their daily practice, built as a prototype at HSLU.
+description: At HSLU, we built a companion app that guides music students through their daily practice.
 tags: [music education, music practice, app development, hslu]
 ---
 

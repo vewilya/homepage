@@ -2,7 +2,7 @@
 title: Binary and Vinyl
 date: 2026-11-25
 location: Lucerne
-description: Where I come from, and why this site sits between a record collection and a compiler.
+description: I've always been a child of two worlds – Soundscapes and Binary Code.
 tags: [about, sound, code]
 ---
 
