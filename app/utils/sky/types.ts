@@ -7,7 +7,6 @@ export type Pointer = {
   x: number; // CSS pixels from the left edge
   y: number; // CSS pixels from the top edge
   active: boolean; // false until the first move and after the pointer leaves
-  clicks: { x: number; y: number }[]; // clicks since the last frame, consumed by it
 };
 
 export type Frame = {
@@ -26,7 +25,7 @@ export type Effect = {
   draw: (frame: Frame) => void;
 };
 
-/** The one lattice every effect draws on, so clicks land on the grid's dots. */
+/** The one lattice every effect draws on. */
 export const LATTICE = { spacing: 12, size: 1.4 } as const;
 
 /** Deterministic 0..1 value for an integer cell, cheap enough per frame. */

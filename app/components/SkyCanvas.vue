@@ -12,7 +12,7 @@
  *   eased towards on the same curve and over the same 8s as the pictures'
  *   crossfade, so the dots recolour in step with everything behind them.
  */
-import { LATTICE, type Effect, type Frame, type Pointer } from "~/utils/sky/types";
+import type { Effect, Frame, Pointer } from "~/utils/sky/types";
 import { createLivingGrid, debug as gridDebug } from "~/utils/sky/livingGrid";
 import { createGlyphStream } from "~/utils/sky/glyphStream";
 import { sampleLevel } from "~/utils/sky/spectrum";
@@ -42,11 +42,11 @@ const canvas = ref<HTMLCanvasElement>();
 onMounted(() => {
   const el = canvas.value!;
   const ctx = el.getContext("2d", { alpha: true })!;
-  // one lattice: the ambient grain, the music's spectrum and a Game of Life
-  // seeded by clicks, all on the same dots; and the transmission, tapes of
-  // type climbing the decoration's arc on the same cells
+  // one lattice: the ambient grain breathing with the music, and the
+  // transmission, tapes of type spiralling up the decoration's arc on the
+  // same cells; the pointer resolves the tapes where it rests
   const effects: Effect[] = [createLivingGrid(), createGlyphStream()];
-  const pointer: Pointer = { x: 0, y: 0, active: false, clicks: [] };
+  const pointer: Pointer = { x: 0, y: 0, active: false };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
   let width = 0;
@@ -102,7 +102,6 @@ onMounted(() => {
     };
     const t0 = import.meta.dev ? performance.now() : 0;
     for (const e of effects) e.draw(f);
-    pointer.clicks.length = 0; // consumed by this frame
     if (import.meta.dev) stats.drawMs = performance.now() - t0;
   };
 
@@ -119,33 +118,19 @@ onMounted(() => {
     ctx.clearRect(0, 0, width, height);
   };
 
-  // while the pointer is pressed, it keeps seeding as it moves: a new seed
-  // every DRAG_STEP px, so a drag draws a trail of colonies
-  const DRAG_STEP = LATTICE.spacing * 2;
-  let pressed = false;
-  let lastSeed = { x: 0, y: 0 };
-  const seed = (x: number, y: number) => {
-    if (pointer.clicks.length < 16) pointer.clicks.push({ x, y });
-    lastSeed = { x, y };
-  };
-  const onMove = (e: PointerEvent) => {
+  // the pointer's place, for the effects; a touch counts while the finger
+  // is down, a mouse until it leaves the page
+  const place = (e: PointerEvent) => {
     pointer.x = e.clientX;
     pointer.y = e.clientY;
     pointer.active = true;
-    if (pressed && Math.hypot(e.clientX - lastSeed.x, e.clientY - lastSeed.y) >= DRAG_STEP)
-      seed(e.clientX, e.clientY);
+  };
+  const onMove = (e: PointerEvent) => place(e);
+  const onDown = (e: PointerEvent) => place(e);
+  const onUp = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse") pointer.active = false;
   };
   const onLeave = () => (pointer.active = false);
-  const onDown = (e: PointerEvent) => {
-    // a click on a control is for the control, not for the sky
-    if (
-      (e.target as Element | null)?.closest("a, button, input, select, textarea, [role='switch']")
-    )
-      return;
-    pressed = true;
-    seed(e.clientX, e.clientY);
-  };
-  const onUp = () => (pressed = false);
 
   // dev only: lets a browser session read what the loop is doing
   const stats = {
