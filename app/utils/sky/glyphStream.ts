@@ -140,8 +140,9 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     // navy by day, cream at night, the mix following the mode crossfade;
-    // resolved words warm towards the accent (#c9461f day, #ef6a3c night)
-    // as the music gets loud
+    // resolved words warm towards the accent (#c9461f day, #ef6a3c night),
+    // a gradient from the window's centre outwards, further and further
+    // along the arc as the music gets loud
     const ink = [
       22 * (1 - dark) + 239 * dark,
       41 * (1 - dark) + 230 * dark,
@@ -152,7 +153,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
       70 * (1 - dark) + 106 * dark,
       31 * (1 - dark) + 60 * dark,
     ];
-    const warm = Math.pow(level, 1.5);
+    const warm = 0.45 + 0.55 * level; // a resolved word's warmth at the window's centre
     const base = (alphaLight + (alphaDark - alphaLight) * dark) * (0.85 + 0.7 * level);
     const cell = spacing / 2;
     // the pace: a slow climb in silence, up to two and a half times that at full level
@@ -196,7 +197,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
           0.78 + 0.22 * Math.sin(time * (0.4 + hash2(k, li + 23)) + hash2(k, li + 29) * 7);
         const alpha = env * base * (0.5 + 0.5 * resolve) * blink;
         if (alpha < 0.02) continue;
-        const w = warm * resolve;
+        const w = Math.min(1, warm * resolve + 0.35 * t * level);
         const r = Math.round(ink[0]! + (hot[0]! - ink[0]!) * w);
         const g = Math.round(ink[1]! + (hot[1]! - ink[1]!) * w);
         const b = Math.round(ink[2]! + (hot[2]! - ink[2]!) * w);
