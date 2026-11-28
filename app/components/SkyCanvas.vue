@@ -14,6 +14,8 @@
  */
 import { LATTICE, type Effect, type Frame, type Pointer } from "~/utils/sky/types";
 import { createLivingGrid, debug as gridDebug } from "~/utils/sky/livingGrid";
+import { createGlyphStream } from "~/utils/sky/glyphStream";
+import { sampleLevel } from "~/utils/sky/spectrum";
 
 const FRAME_MS = 40; // ~25 fps
 const MODE_EASE_MS = 8000; // matches --mode-fade in main.css
@@ -41,8 +43,9 @@ onMounted(() => {
   const el = canvas.value!;
   const ctx = el.getContext("2d", { alpha: true })!;
   // one lattice: the ambient grain, the music's spectrum and a Game of Life
-  // seeded by clicks, all on the same dots
-  const effects: Effect[] = [createLivingGrid()];
+  // seeded by clicks, all on the same dots; and the transmission, tapes of
+  // type climbing the decoration's arc on the same cells
+  const effects: Effect[] = [createLivingGrid(), createGlyphStream()];
   const pointer: Pointer = { x: 0, y: 0, active: false, clicks: [] };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -85,7 +88,18 @@ onMounted(() => {
     dark = fadeFrom + (fadeTo - fadeFrom) * cssEase((now - fadeStart) / MODE_EASE_MS);
 
     ctx.clearRect(0, 0, width, height);
-    const f: Frame = { ctx, width, height, time: (now - startedAt) / 1000, dt, pointer, dark };
+    // the music's presence, read once a frame: the sampler smooths per call
+    const level = sampleLevel();
+    const f: Frame = {
+      ctx,
+      width,
+      height,
+      time: (now - startedAt) / 1000,
+      dt,
+      pointer,
+      dark,
+      level,
+    };
     const t0 = import.meta.dev ? performance.now() : 0;
     for (const e of effects) e.draw(f);
     pointer.clicks.length = 0; // consumed by this frame

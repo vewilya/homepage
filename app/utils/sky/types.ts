@@ -18,6 +18,7 @@ export type Frame = {
   dt: number; // seconds since the last drawn frame
   pointer: Pointer;
   dark: number; // 0 in light mode, 1 in dark, in between during the crossfade
+  level: number; // the music's presence, 0..1; 0 in silence (sampled once per frame)
 };
 
 export type Effect = {

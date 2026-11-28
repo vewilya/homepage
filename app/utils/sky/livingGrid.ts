@@ -1,6 +1,5 @@
 import type { Effect, Frame } from "./types";
 import { LATTICE, hash2 } from "./types";
-import { sampleLevel } from "./spectrum";
 
 /**
  * The one dot lattice behind the page, with three things going on in it.
@@ -64,7 +63,6 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
   let dying = new Float32Array(0); // fade-out of cells that just died
   let accumulator = 0;
   let alive = 0;
-  let level = 0;
 
   const resize = (width: number, height: number) => {
     cols = Math.ceil(width / spacing) + 1;
@@ -152,9 +150,8 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
     [energy, next] = [next, energy];
   };
 
-  const draw = ({ ctx, time, dt, pointer, dark }: Frame) => {
+  const draw = ({ ctx, time, dt, pointer, dark, level }: Frame) => {
     for (const c of pointer.clicks) seed(c.x, c.y);
-    level = sampleLevel();
 
     // the ambient sine of every cell, kept for the life rule as well
     for (let i = 0; i < blink.length; i++) blink[i] = Math.sin(time * speed[i]! + phase[i]!);
