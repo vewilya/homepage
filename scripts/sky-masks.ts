@@ -4,14 +4,21 @@
  * written to app/utils/sky/skyMasks.ts. The sky's dot grain reads it so
  * the dots stay in the sky and off the mountains.
  *
- * A mask drawn by hand wins: images/masks/<name>.png, the picture's
- * proportions at any size, pure white or bright green wherever the sky
- * is. That can be a black and white mask, or a copy of the picture itself
- * with the sky painted over: the pictures hold no white and no pure green
- * of their own, so both are safe markers, and green is the easier one to
- * see while painting. Anything else, transparent included, is not sky.
- * Without such a file the mask is found automatically, as a horizon per
- * column:
+ * A mask drawn by hand wins: images/masks/<name>.png or the picture's copy
+ * in images/masks-pictures/<name>.png, the picture's proportions at any
+ * size, pure white or bright green wherever the sky is. That can be a
+ * black and white mask, or the picture itself with the sky painted over:
+ * the pictures hold no white and no pure green of their own, so both are
+ * safe markers, and green is the easier one to see while painting.
+ * Anything else, transparent included, is not sky. The sky can also be
+ * outlined instead of filled: when the marks cover only a small share of
+ * the picture they are read as walls, and everything the top edge reaches
+ * without crossing one is sky, so an outlined moon or astronaut is a hole
+ * in it; a stroke that stops short of the left or right edge is carried
+ * on to it, so the flood cannot slip round the end. A file with next to
+ * no marks is an unpainted copy and is passed
+ * over. Without a painted file the mask is found automatically, as a
+ * horizon per column:
  *
  * Reads the masters in images/ (PNG, same cut as the served WebPs), block
  * averages them to a couple of hundred columns (which also blurs away the
@@ -350,9 +357,72 @@ const WHITE = 240; // every channel at least this: painted white, not a picture'
 /** Painted green: green high, red and blue low; nothing in the pictures comes near it. */
 const isGreen = (r: number, g: number, b: number) => g >= 180 && r <= 90 && b <= 110;
 
-/** A hand-drawn mask, resampled to the mask grid: a cell is sky if at least half its pixels are marked. */
+const PAINTED = 0.003; // a file marked on less than this share of its pixels is not painted
+const OUTLINED = 0.25; // marked on less than this share: the marks are outlines, not the fill
+
+/** A painted pixel: white, or green, with the anti-aliased fringe of a green stroke counted in. */
+const isMarked = (r: number, g: number, b: number) =>
+  (r >= WHITE && g >= WHITE && b >= WHITE) || isGreen(r, g, b) || g > Math.max(r, b) + 30;
+
+/**
+ * A hand-drawn mask, resampled to the mask grid: a cell is sky if at least
+ * half its pixels are sky. Sky is the marks themselves when they fill the
+ * picture, or, when they only outline it, everything the top edge reaches
+ * without crossing a mark. Undefined when the file carries no marks.
+ */
 const handMask = (path: string, cols: number, rows: number) => {
   const m = readPng(path);
+  const n = m.width * m.height;
+  const marked = new Uint8Array(n);
+  let markedTotal = 0;
+  for (let i = 0; i < n; i++)
+    if (m.alpha[i]! >= 128 && isMarked(m.rgb[i * 3]!, m.rgb[i * 3 + 1]!, m.rgb[i * 3 + 2]!)) {
+      marked[i] = 1;
+      markedTotal++;
+    }
+  if (markedTotal / n < PAINTED) return undefined;
+
+  let sky = marked;
+  if (markedTotal / n < OUTLINED) {
+    // a stroke's loose end near a side edge is carried on to the edge
+    for (const side of ["left", "right"] as const) {
+      let edgeX = side === "left" ? 0 : m.width - 1;
+      let touches = false;
+      for (let y = 0; y < m.height && !touches; y++) touches = !!marked[y * m.width + edgeX];
+      if (touches) continue;
+      // the marked pixel nearest that edge
+      let best = -1;
+      let bestX = side === "left" ? m.width : -1;
+      for (let i = 0; i < n; i++) {
+        if (!marked[i]) continue;
+        const x = i % m.width;
+        if (side === "left" ? x < bestX : x > bestX) {
+          bestX = x;
+          best = i;
+        }
+      }
+      if (best < 0) continue;
+      const y = Math.floor(best / m.width);
+      for (let x = Math.min(edgeX, bestX); x <= Math.max(edgeX, bestX); x++)
+        marked[y * m.width + x] = 1;
+      edgeX = bestX;
+    }
+    // outlines: flood from the top edge through unmarked pixels, four-connected
+    sky = new Uint8Array(n);
+    const stack: number[] = [];
+    for (let x = 0; x < m.width; x++) if (!marked[x]) stack.push(x);
+    while (stack.length) {
+      const i = stack.pop()!;
+      if (sky[i] || marked[i]) continue;
+      sky[i] = 1;
+      const x = i % m.width;
+      if (x > 0) stack.push(i - 1);
+      if (x < m.width - 1) stack.push(i + 1);
+      if (i >= m.width) stack.push(i - m.width);
+      if (i + m.width < n) stack.push(i + m.width);
+    }
+  }
+
   const bits = new Uint8Array(cols * rows);
   for (let cy = 0; cy < rows; cy++)
     for (let cx = 0; cx < cols; cx++) {
@@ -361,15 +431,7 @@ const handMask = (path: string, cols: number, rows: number) => {
       const y0 = Math.floor((cy * m.height) / rows);
       const y1 = Math.max(y0 + 1, Math.floor(((cy + 1) * m.height) / rows));
       let sum = 0;
-      for (let y = y0; y < y1; y++)
-        for (let x = x0; x < x1; x++) {
-          const i = y * m.width + x;
-          const r = m.rgb[i * 3]!;
-          const g = m.rgb[i * 3 + 1]!;
-          const b = m.rgb[i * 3 + 2]!;
-          const marked = (r >= WHITE && g >= WHITE && b >= WHITE) || isGreen(r, g, b);
-          if (marked && m.alpha[i]! >= 128) sum++;
-        }
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) sum += sky[y * m.width + x]!;
       bits[cy * cols + cx] = sum / ((x1 - x0) * (y1 - y0)) >= 0.5 ? 1 : 0;
     }
   return bits;
@@ -383,12 +445,20 @@ for (const m of MASTERS) {
   cols = Math.round(full.width / MASK_BLOCK);
   rows = Math.round(full.height / MASK_BLOCK);
   const small = downsample(full, BLOCK);
-  const hand = join(ROOT, "images/masks", `${m.name}.png`);
-  let bits: Uint8Array;
-  let horizon: Float64Array | undefined;
-  if (existsSync(hand)) {
+  // a painted file, from either folder; else the automatic horizon
+  let bits: Uint8Array | undefined;
+  let source = "automatic ";
+  for (const dir of ["images/masks", "images/masks-pictures"]) {
+    const hand = join(ROOT, dir, `${m.name}.png`);
+    if (!existsSync(hand)) continue;
     bits = handMask(hand, cols, rows);
-  } else {
+    if (bits) {
+      source = dir.padEnd(20);
+      break;
+    }
+  }
+  let horizon: Float64Array | undefined;
+  if (!bits) {
     horizon = horizonOf(small, m.mode);
     bits = new Uint8Array(cols * rows);
     for (let cy = 0; cy < rows; cy++)
@@ -416,9 +486,7 @@ for (const m of MASTERS) {
     writePng(join(exportDir, `${m.name}.png`), e);
   }
   const sky = bits.reduce((a, v) => a + v, 0) / bits.length;
-  console.log(
-    `${m.name.padEnd(20)} ${existsSync(hand) ? "hand-drawn" : "automatic "}  sky ${(sky * 100).toFixed(0)}% of the picture`,
-  );
+  console.log(`${m.name.padEnd(20)} ${source}  sky ${(sky * 100).toFixed(0)}% of the picture`);
   if (previewDir) {
     const p: Raster = { width: small.width, height: small.height, rgb: new Uint8Array(small.rgb) };
     const at = (x: number, y: number) =>
