@@ -5,12 +5,13 @@
  * the dots stay in the sky and off the mountains.
  *
  * A mask drawn by hand wins: images/masks/<name>.png, the picture's
- * proportions at any size, pure white wherever the sky is. That can be a
- * black and white mask, or a copy of the picture itself with the sky
- * painted over in white: the pictures hold no white of their own (a
- * handful of pixels at most), so white is a safe marker. Anything not
- * white, transparent included, is not sky. Without such a file the mask
- * is found automatically, as a horizon per column:
+ * proportions at any size, pure white or bright green wherever the sky
+ * is. That can be a black and white mask, or a copy of the picture itself
+ * with the sky painted over: the pictures hold no white and no pure green
+ * of their own, so both are safe markers, and green is the easier one to
+ * see while painting. Anything else, transparent included, is not sky.
+ * Without such a file the mask is found automatically, as a horizon per
+ * column:
  *
  * Reads the masters in images/ (PNG, same cut as the served WebPs), block
  * averages them to a couple of hundred columns (which also blurs away the
@@ -346,8 +347,10 @@ const pack = (bits: Uint8Array) => {
 };
 
 const WHITE = 240; // every channel at least this: painted white, not a picture's highlight
+/** Painted green: green high, red and blue low; nothing in the pictures comes near it. */
+const isGreen = (r: number, g: number, b: number) => g >= 180 && r <= 90 && b <= 110;
 
-/** A hand-drawn mask, resampled to the mask grid: a cell is sky if at least half its pixels are white. */
+/** A hand-drawn mask, resampled to the mask grid: a cell is sky if at least half its pixels are marked. */
 const handMask = (path: string, cols: number, rows: number) => {
   const m = readPng(path);
   const bits = new Uint8Array(cols * rows);
@@ -361,12 +364,11 @@ const handMask = (path: string, cols: number, rows: number) => {
       for (let y = y0; y < y1; y++)
         for (let x = x0; x < x1; x++) {
           const i = y * m.width + x;
-          const white =
-            m.rgb[i * 3]! >= WHITE &&
-            m.rgb[i * 3 + 1]! >= WHITE &&
-            m.rgb[i * 3 + 2]! >= WHITE &&
-            m.alpha[i]! >= 128;
-          if (white) sum++;
+          const r = m.rgb[i * 3]!;
+          const g = m.rgb[i * 3 + 1]!;
+          const b = m.rgb[i * 3 + 2]!;
+          const marked = (r >= WHITE && g >= WHITE && b >= WHITE) || isGreen(r, g, b);
+          if (marked && m.alpha[i]! >= 128) sum++;
         }
       bits[cy * cols + cx] = sum / ((x1 - x0) * (y1 - y0)) >= 0.5 ? 1 : 0;
     }
