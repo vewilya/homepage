@@ -536,6 +536,14 @@ body {
   align-self: start;
   text-align: center;
   padding: 6vh 0 2vh;
+  /* on a short screen the hero is taller than its cell: it scrolls inside
+     it, as a reading panel does, instead of running under the footer */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.hero::-webkit-scrollbar {
+  display: none;
 }
 @media (min-width: 1100px) {
   .hero {
@@ -975,8 +983,14 @@ body {
   .project {
     grid-template-columns: 1fr;
   }
+  /* stacked: the thumbnail and its number sit centred over the text */
+  .project__figure {
+    justify-self: center;
+    text-align: center;
+  }
   .project__thumb {
     max-width: 12rem; /* capped here, not on the image, so the play disc centres on the picture */
+    margin: 0 auto;
   }
   .project__body {
     grid-column: 1;
@@ -1147,7 +1161,7 @@ body {
   }
   .site-main {
     padding-top: 7rem;
-    padding-bottom: 4.5rem;
+    padding-bottom: 6rem; /* the fixed footer wraps to two lines here */
   }
 }
 /* small phones: the menu drops its zone numbers and closes up so all three
