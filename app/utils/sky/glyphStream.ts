@@ -171,7 +171,13 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
       70 * (1 - dark) + 106 * dark,
       31 * (1 - dark) + 60 * dark,
     ];
-    const warm = 0.45 + 0.55 * level; // a resolved word's warmth at the window's centre
+    // a resolved word's warmth at the window's centre: cream only needs a
+    // touch of the accent to read as warm, navy needs most of it, or the mix
+    // is a brown-grey that vanishes over the blue sky
+    const warm = (0.85 + 0.15 * level) * (1 - dark) + (0.45 + 0.55 * level) * dark;
+    // and a standing tint up the arc, towards the sun and the ring, that the
+    // music deepens
+    const tint = 0.3 * (0.3 + 0.7 * level);
     const base = (alphaLight + (alphaDark - alphaLight) * dark) * (0.85 + 0.7 * level);
     const cell = spacing / 2;
     const width = ctx.canvas.clientWidth;
@@ -224,7 +230,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
         const near = 0.5 + 0.5 * depth;
         const alpha = env * base * (0.5 + 0.5 * resolve) * blink * (0.3 + 0.7 * near);
         if (alpha < 0.02) continue;
-        const w = Math.min(1, warm * resolve + 0.35 * t * level);
+        const w = Math.min(1, warm * resolve + tint * t);
         const cr = Math.round(ink[0]! + (hot[0]! - ink[0]!) * w);
         const cg = Math.round(ink[1]! + (hot[1]! - ink[1]!) * w);
         const cb = Math.round(ink[2]! + (hot[2]! - ink[2]!) * w);
