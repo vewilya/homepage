@@ -625,11 +625,64 @@ body {
 .hero__links a:hover {
   border-color: var(--accent);
 }
-.hero__latest {
-  margin: 0;
+/* the newest post: a small framed notice on the same glass as the controls,
+   a kicker, the title, its description and a prompt; the whole frame is
+   the link, and the frame answers a hover in the accent */
+.latest {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 30rem;
+  padding: 0.85rem 1.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+  transition:
+    border-color var(--ink-fade) ease,
+    background-color var(--ink-fade) ease,
+    color var(--ink-fade) ease;
+}
+.latest:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.latest__kicker {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--muted);
+}
+.latest__title {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.latest__dek {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.latest__cta {
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.latest__cta i {
+  font-style: normal;
+  display: inline-block;
+  transition: transform 0.25s ease;
+}
+.latest:hover .latest__cta i {
+  transform: translateX(0.2em);
 }
 
 /* Every control stands on the same glass as the panels: the page colour at

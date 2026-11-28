@@ -1,9 +1,28 @@
 <script setup lang="ts">
-// The newest post gets one quiet line under the hero.
+// The newest post gets a small framed notice under the hero: a kicker that
+// says what this is, the title, its one-line description and a prompt to
+// read it. The kicker is drawn from a few phrasings, a different one each
+// visit; the first is rendered on the server and swapped once mounted, so
+// the markup hydrates clean, and the swap hides inside the page's fade-in.
 const { data: latest } = await useAsyncData("home-latest", () =>
-  queryCollection("thoughts").order("date", "DESC").select("path", "title", "date", "draft").all(),
+  queryCollection("thoughts")
+    .order("date", "DESC")
+    .select("path", "title", "description", "date", "draft")
+    .all(),
 );
 const newest = computed(() => latest.value?.find((p) => !p.draft));
+
+const KICKERS = [
+  "latest transmission",
+  "last signal received",
+  "new from the overlap",
+  "fresh in transmissions",
+  "most recent dispatch",
+];
+const kicker = ref(KICKERS[0]!);
+onMounted(() => {
+  kicker.value = KICKERS[Math.floor(Math.random() * KICKERS.length)]!;
+});
 </script>
 
 <template>
@@ -24,8 +43,11 @@ const newest = computed(() => latest.value?.find((p) => !p.draft));
       <a href="https://github.com/vewilya" rel="noopener">GitHub</a>
       <a href="https://linkedin.com/in/ursbollhaldercomposer" rel="noopener">LinkedIn</a>
     </p>
-    <p v-if="newest" class="hero__latest">
-      latest transmission · <NuxtLink :to="newest.path">{{ newest.title }}</NuxtLink>
-    </p>
+    <NuxtLink v-if="newest" :to="newest.path" class="hero__latest latest">
+      <span class="latest__kicker">{{ kicker }}</span>
+      <span class="latest__title">{{ newest.title }}</span>
+      <span v-if="newest.description" class="latest__dek">{{ newest.description }}</span>
+      <span class="latest__cta">read it <i aria-hidden="true">→</i></span>
+    </NuxtLink>
   </section>
 </template>
