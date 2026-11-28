@@ -1,14 +1,11 @@
 <script setup lang="ts">
-// The newest post gets a small framed notice under the hero: a kicker that
-// says what this is, the title, its one-line description and a prompt to
-// read it. The kicker is drawn from a few phrasings, a different one each
-// visit; the first is rendered on the server and swapped once mounted, so
-// the markup hydrates clean, and the swap hides inside the page's fade-in.
+// The newest post gets a small framed notice under the hero, one line: a
+// kicker that says what this is, the title and a prompt to read it. The
+// kicker is drawn from a few phrasings, a different one each visit; the
+// first is rendered on the server and swapped once mounted, so the markup
+// hydrates clean, and the swap hides inside the page's fade-in.
 const { data: latest } = await useAsyncData("home-latest", () =>
-  queryCollection("thoughts")
-    .order("date", "DESC")
-    .select("path", "title", "description", "date", "draft")
-    .all(),
+  queryCollection("thoughts").order("date", "DESC").select("path", "title", "date", "draft").all(),
 );
 const newest = computed(() => latest.value?.find((p) => !p.draft));
 
@@ -46,8 +43,7 @@ onMounted(() => {
     <NuxtLink v-if="newest" :to="newest.path" class="hero__latest latest">
       <span class="latest__kicker">{{ kicker }}</span>
       <span class="latest__title">{{ newest.title }}</span>
-      <span v-if="newest.description" class="latest__dek">{{ newest.description }}</span>
-      <span class="latest__cta">read it <i aria-hidden="true">→</i></span>
+      <span class="latest__cta">read more <i aria-hidden="true">→</i></span>
     </NuxtLink>
   </section>
 </template>
