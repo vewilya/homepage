@@ -27,6 +27,7 @@ export type GlyphStreamOptions = {
   turns?: number; // helix turns from the bottom of the arc to the top
   radius?: number; // the tube's radius at the bottom, in cells
   flare?: number; // how much wider it is at the top, in cells
+  flickerSeconds?: number; // a noise cell keeps its character about this long, in silence
   gap?: number; // blank cells between two readings of the phrase
   dropout?: number; // share of cells that stay blank for good, 0..1
   minSeconds?: number; // one trip from the bottom to the top, fastest lane
@@ -74,9 +75,10 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
   const minSeconds = o.minSeconds ?? 200;
   const maxSeconds = o.maxSeconds ?? 320;
   const spinSeconds = o.spinSeconds ?? 150;
+  const flickerSeconds = o.flickerSeconds ?? 6;
   const alphaDark = o.alphaDark ?? 0.46;
   const alphaLight = o.alphaLight ?? 0.66;
-  const fontSize = o.fontSize ?? 10;
+  const fontSize = o.fontSize ?? 8;
   const spacing = LATTICE.spacing;
   const tape = phrase + " ".repeat(gap);
 
@@ -209,9 +211,9 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
         const env = smooth(0, 0.08, t) * (1 - smooth(0.9, 1, t));
         if (env <= 0) continue;
         const resolve = 1 - smooth(halfWindow, halfWindow * 2, Math.abs(t - window));
-        // noise flickers on its own clock per cell, faster as it resolves and
-        // faster with the music
-        const period = ((1 + hash2(k, li) * 2.5) * (1 - 0.7 * resolve)) / pace;
+        // noise changes on its own slow clock per cell, half to one and a
+        // half times flickerSeconds, faster as it resolves and with the music
+        const period = (flickerSeconds * (0.5 + hash2(k, li)) * (1 - 0.7 * resolve)) / pace;
         const tick = Math.floor(time / period);
         const ch =
           resolve > 0.5
