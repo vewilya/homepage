@@ -1,5 +1,6 @@
 import type { Effect, Frame } from "./types";
 import { LATTICE, hash2 } from "./types";
+import type { SkyMask } from "./skyMask";
 
 /**
  * The one dot lattice behind the page.
@@ -17,6 +18,10 @@ import { LATTICE, hash2 } from "./types";
  * the dots swell, brighten and glow red for a moment in both modes. A hit
  * above, a hi-hat or a click, is a sparkle: a scatter of cells flash bright
  * and are gone.
+ *
+ * Sky only: with a mask (skyMask.ts) every dot is weighted by how much sky
+ * the picture has under it, so the grain stays off the mountains, the
+ * astronauts and the ground.
  */
 export type LivingGridOptions = {
   spacing?: number;
@@ -29,6 +34,7 @@ export type LivingGridOptions = {
   pulse?: number; // how far a low hit swells a dot, as a share of its size
   glow?: number; // how far a low hit warms the dots towards the accent, 0..1
   sparkle?: number; // share of cells a full high hit lights, 0..1
+  mask?: SkyMask; // where the sky is; without it the grain covers the window
 };
 
 /** Dev reading: the music's presence the grid is drawn at. */
@@ -45,6 +51,7 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
   const pulse = o.pulse ?? 0.4;
   const glow = o.glow ?? 0.35;
   const sparkle = o.sparkle ?? 0.004;
+  const mask = o.mask;
 
   let cols = 0;
   let rows = 0;
@@ -102,15 +109,17 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
       const py = Math.sin(y * 0.3 - time * 0.11);
       for (let x = 0; x < cols; x++) {
         const i = y * cols + x;
+        const sky = mask ? mask.weight(x * spacing, y * spacing) : 1;
+        if (sky < 0.02) continue;
         if (scatter && hash2(x + tick * 7, y + tick * 3) < scatter) {
-          ctx.fillStyle = `rgba(${sr},${sg},${sb},${(0.6 * highHit).toFixed(3)})`;
+          ctx.fillStyle = `rgba(${sr},${sg},${sb},${(0.6 * highHit * sky).toFixed(3)})`;
           ctx.fillRect(x * spacing - size, y * spacing - size, size * 2, size * 2);
           continue;
         }
         const s = Math.sin(time * speed[i]! + phase[i]!);
         if (s <= 0.6) continue;
         const patch = 0.5 + 0.5 * Math.sin(x * 0.35 + time * 0.15) * py;
-        const alpha = Math.pow(s, 6) * patch * patch * strength;
+        const alpha = Math.pow(s, 6) * patch * patch * strength * sky;
         if (alpha < 0.02) continue;
         ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
         ctx.fillRect(x * spacing - half, y * spacing - half, dot, dot);

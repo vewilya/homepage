@@ -15,6 +15,8 @@
 import type { Effect, Frame } from "~/utils/sky/types";
 import { createLivingGrid, debug as gridDebug } from "~/utils/sky/livingGrid";
 import { createGlyphStream } from "~/utils/sky/glyphStream";
+import { createSkyMask } from "~/utils/sky/skyMask";
+import { picturesFor } from "~/utils/pictures";
 import { sampleAudio } from "~/utils/sky/spectrum";
 
 const FRAME_MS = 40; // ~25 fps
@@ -38,14 +40,22 @@ const cssEase = (t: number) => {
 };
 
 const canvas = ref<HTMLCanvasElement>();
+const route = useRoute();
 
 onMounted(() => {
   const el = canvas.value!;
   const ctx = el.getContext("2d", { alpha: true })!;
-  // one lattice: the ambient grain breathing with the music, and the
-  // transmission, tapes of type spiralling up the decoration's arc on the
-  // same cells
-  const effects: Effect[] = [createLivingGrid(), createGlyphStream()];
+  // where the sky is in the pictures behind this page: the grain keeps to it
+  const mask = createSkyMask();
+  mask.set(picturesFor(route.path));
+  watch(
+    () => route.path,
+    (path) => mask.set(picturesFor(path)),
+  );
+  // one lattice: the ambient grain breathing with the music, kept to the
+  // sky, and the transmission, tapes of type spiralling up the decoration's
+  // arc on the same cells
+  const effects: Effect[] = [createLivingGrid({ mask }), createGlyphStream()];
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
   let width = 0;
@@ -67,6 +77,7 @@ onMounted(() => {
     el.width = Math.round(width * dpr);
     el.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    mask.resize(width, height);
     for (const e of effects) e.resize?.(width, height);
   };
 
@@ -91,6 +102,7 @@ onMounted(() => {
     // the music, read once a frame: the sampler's followers step per call
     const time = (now - startedAt) / 1000;
     const audio = sampleAudio(dt, time);
+    mask.tick(dt, dark);
     const f: Frame = { ctx, width, height, time, dt, dark, audio };
     if (import.meta.dev) lastAudio = audio;
     const t0 = import.meta.dev ? performance.now() : 0;

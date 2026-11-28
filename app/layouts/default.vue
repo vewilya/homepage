@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { picturesFor } from "~/utils/pictures";
+
 const route = useRoute();
 const isHome = computed(() => route.path === "/");
 
@@ -6,20 +8,11 @@ const isHome = computed(() => route.path === "/");
 const baseURL = useRuntimeConfig().app.baseURL.replace(/\/+$/, "");
 const asset = (path: string) => baseURL + path;
 
-// One picture per kind of page and per mode. Both layers are always in the
-// DOM; the stylesheet fades the current mode's layer in and the other out.
-const PICTURES = {
-  home: { dark: "twin-moons", light: "moonlit-astronaut" },
-  thoughts: { dark: "rocket-snowy-peaks", light: "retro-rocket" },
-  inner: { dark: "galactic-mountains", light: "starlit-planets" },
-} as const;
+// One picture per kind of page and per mode (utils/pictures.ts). Both layers
+// are always in the DOM; the stylesheet fades the current mode's layer in
+// and the other out.
 const pictures = computed(() => {
-  const kind = isHome.value
-    ? "home"
-    : route.path === "/thoughts" || route.path === "/expeditions"
-      ? "thoughts"
-      : "inner";
-  const pick = PICTURES[kind];
+  const pick = picturesFor(route.path);
   return {
     dark: asset(`/images/dark/${pick.dark}.webp`),
     light: asset(`/images/light/${pick.light}.webp`),
