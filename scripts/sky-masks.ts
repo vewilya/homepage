@@ -23,13 +23,16 @@
  * columns takes out the last spikes.
  *
  * Previews go to --preview <dir>: the picture dimmed where it is not sky,
- * for checking by eye. No dependencies: the PNGs are decoded here.
+ * for checking by eye. --export <dir> writes each mask as a black and
+ * white PNG at the master's own size, a starting point to paint over and
+ * save into images/masks/. No dependencies: the PNGs are decoded here.
  *
  * The masks are stored at MASK_BLOCK pixels of the picture per cell, one
  * bit per cell, base64; the sky samples them bilinearly, so the edge is
  * soft by a cell either way.
  *
  *   vpx scripts/sky-masks.ts --preview /tmp/horizons
+ *   vpx scripts/sky-masks.ts --export images/masks-auto
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -329,6 +332,8 @@ const horizonOf = (small: Raster, mode: "light" | "dark") => {
 const args = process.argv.slice(2);
 const previewDir = args.includes("--preview") ? args[args.indexOf("--preview") + 1] : undefined;
 if (previewDir) mkdirSync(previewDir, { recursive: true });
+const exportDir = args.includes("--export") ? args[args.indexOf("--export") + 1] : undefined;
+if (exportDir) mkdirSync(exportDir, { recursive: true });
 
 /** One bit per cell, rows top to bottom, packed MSB first, base64. */
 const pack = (bits: Uint8Array) => {
@@ -383,6 +388,22 @@ for (const m of MASTERS) {
       }
   }
   results[m.name] = pack(bits);
+  if (exportDir) {
+    // the mask at the master's size: white sky, black everything else
+    const e: Raster = {
+      width: full.width,
+      height: full.height,
+      rgb: new Uint8Array(full.width * full.height * 3),
+    };
+    for (let y = 0; y < e.height; y++) {
+      const cy = Math.min(rows - 1, Math.floor((y / e.height) * rows));
+      for (let x = 0; x < e.width; x++) {
+        const cx = Math.min(cols - 1, Math.floor((x / e.width) * cols));
+        if (bits[cy * cols + cx]) e.rgb.fill(255, (y * e.width + x) * 3, (y * e.width + x) * 3 + 3);
+      }
+    }
+    writePng(join(exportDir, `${m.name}.png`), e);
+  }
   const sky = bits.reduce((a, v) => a + v, 0) / bits.length;
   console.log(
     `${m.name.padEnd(20)} ${existsSync(hand) ? "hand-drawn" : "automatic "}  sky ${(sky * 100).toFixed(0)}% of the picture`,
