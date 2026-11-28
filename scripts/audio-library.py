@@ -31,14 +31,6 @@ PEAK_DBTP = -1.0  # the true peak no file may exceed after the gain
 # light: a track is a first play followed by a seamless loop
 DARK = {
     "Darklings": {"album": "Ghosts in the Machines", "versions": {"pitch-black": "UB_BLACKOUT_PITCH BLACK-01.wav"}},
-    "Dystopian Nights": {
-        "album": "Ghosts in the Machines",
-        "versions": {
-            "dystopian-nights-full": "DYSTOPIAN NIGHTS/DYSTOPIAN NIGHTS (Full Version).wav",
-            "dystopian-nights-ambient": "DYSTOPIAN NIGHTS/DYSTOPIAN NIGHTS (Ambient Version).wav",
-            "dystopian-nights-perc": "DYSTOPIAN NIGHTS/DYSTOPIAN NIGHTS (Perc Version) (Shorter).wav",
-        },
-    },
     "Mechanics": {
         "album": "Ghosts in the Machines",
         "versions": {

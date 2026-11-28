@@ -24,39 +24,6 @@ export const LIBRARY: { dark: DarkTrack[]; light: LightTrack[] } = {
       ],
     },
     {
-      title: "Dystopian Nights",
-      album: "Ghosts in the Machines",
-      versions: [
-        {
-          src: "/audio/dystopian-nights-full.m4a",
-          seconds: 186,
-          gainDb: -4.0,
-          profile: {
-            floorDb: -41.8,
-            peakDb: -15.6,
-          },
-        },
-        {
-          src: "/audio/dystopian-nights-ambient.m4a",
-          seconds: 186,
-          gainDb: -1.9,
-          profile: {
-            floorDb: -42.4,
-            peakDb: -17.5,
-          },
-        },
-        {
-          src: "/audio/dystopian-nights-perc.m4a",
-          seconds: 120,
-          gainDb: -3.5,
-          profile: {
-            floorDb: -46.4,
-            peakDb: -14.6,
-          },
-        },
-      ],
-    },
-    {
       title: "Mechanics",
       album: "Ghosts in the Machines",
       versions: [
