@@ -82,9 +82,9 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
   const maxSeconds = o.maxSeconds ?? 320;
   const spinSeconds = o.spinSeconds ?? 150;
   const flickerSeconds = o.flickerSeconds ?? 6;
-  const step = o.step ?? 0.08;
-  const flareHit = o.flareHit ?? 1.5;
-  const flipShare = o.flipShare ?? 0.3;
+  const step = o.step ?? 0.04;
+  const flareHit = o.flareHit ?? 0.7;
+  const flipShare = o.flipShare ?? 0.12;
   const alphaDark = o.alphaDark ?? 0.46;
   const alphaLight = o.alphaLight ?? 0.66;
   const fontSize = o.fontSize ?? 8;
@@ -188,16 +188,16 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
     // is a brown-grey that vanishes over the blue sky
     const warm = Math.min(
       1,
-      (0.85 + 0.15 * level) * (1 - dark) + (0.45 + 0.55 * level) * dark + 0.4 * lowHit,
+      (0.85 + 0.15 * level) * (1 - dark) + (0.45 + 0.55 * level) * dark + 0.2 * lowHit,
     );
     // and a standing tint up the arc, towards the sun and the ring, that the
     // music deepens and a low hit flushes
-    const tint = Math.min(1, 0.3 * (0.3 + 0.7 * level) + 0.35 * lowHit);
+    const tint = Math.min(1, 0.3 * (0.3 + 0.7 * level) + 0.15 * lowHit);
     // a low hit lifts the type, a high hit gives it a quick glint
     const base =
       (alphaLight + (alphaDark - alphaLight) * dark) *
       (0.85 + 0.7 * level) *
-      (1 + 0.5 * lowHit + 0.25 * highHit);
+      (1 + 0.25 * lowHit + 0.1 * highHit);
     const cell = spacing / 2;
     const width = ctx.canvas.clientWidth;
     // the pace: a slow climb and turn in silence, up to twice that at full level
@@ -210,7 +210,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
     beatsSeen = beats;
     // the window of resolution widens with the level and on a hit: a swell
     // or a kick brings words out
-    const halfWindow = 0.035 + 0.09 * level + 0.05 * lowHit;
+    const halfWindow = 0.035 + 0.09 * level + 0.025 * lowHit;
     // a high hit flips a share of the noise cells to new characters
     const flip = clicks;
 

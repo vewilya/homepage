@@ -41,9 +41,9 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
   const minSpeed = o.minSpeed ?? 0.3;
   const maxSpeed = o.maxSpeed ?? 1.0;
   const musicGain = o.musicGain ?? 0.3;
-  const pulse = o.pulse ?? 0.9;
-  const glow = o.glow ?? 0.7;
-  const sparkle = o.sparkle ?? 0.012;
+  const pulse = o.pulse ?? 0.4;
+  const glow = o.glow ?? 0.35;
+  const sparkle = o.sparkle ?? 0.004;
 
   let cols = 0;
   let rows = 0;
@@ -74,7 +74,7 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
     if (presence <= 0) return;
     // a low hit lifts the whole grain and swells every dot for a moment
     const strength =
-      (maxAlphaLight + (maxAlpha - maxAlphaLight) * dark) * presence * (1 + 0.6 * lowHit);
+      (maxAlphaLight + (maxAlpha - maxAlphaLight) * dark) * presence * (1 + 0.3 * lowHit);
     const dot = size * (1 + pulse * lowHit);
     // cream dots at night, navy by day that warms to the sun's red-orange the
     // louder the music; a low hit glows red in both modes. Accent #c9461f by
@@ -102,7 +102,7 @@ export const createLivingGrid = (o: LivingGridOptions = {}): Effect => {
       for (let x = 0; x < cols; x++) {
         const i = y * cols + x;
         if (scatter && hash2(x + tick * 7, y + tick * 3) < scatter) {
-          ctx.fillStyle = `rgba(${sr},${sg},${sb},${(0.9 * highHit).toFixed(3)})`;
+          ctx.fillStyle = `rgba(${sr},${sg},${sb},${(0.6 * highHit).toFixed(3)})`;
           ctx.fillRect(x * spacing - size, y * spacing - size, size * 2, size * 2);
           continue;
         }
