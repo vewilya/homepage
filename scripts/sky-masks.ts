@@ -5,9 +5,12 @@
  * the dots stay in the sky and off the mountains.
  *
  * A mask drawn by hand wins: images/masks/<name>.png, the picture's
- * proportions at any size, light where the sky is and dark where it is
- * not (alpha counts as coverage too). Without one, the mask is found
- * automatically, as a horizon per column:
+ * proportions at any size, pure white wherever the sky is. That can be a
+ * black and white mask, or a copy of the picture itself with the sky
+ * painted over in white: the pictures hold no white of their own (a
+ * handful of pixels at most), so white is a safe marker. Anything not
+ * white, transparent included, is not sky. Without such a file the mask
+ * is found automatically, as a horizon per column:
  *
  * Reads the masters in images/ (PNG, same cut as the served WebPs), block
  * averages them to a couple of hundred columns (which also blurs away the
@@ -342,7 +345,9 @@ const pack = (bits: Uint8Array) => {
   return Buffer.from(bytes).toString("base64");
 };
 
-/** A hand-drawn mask, resampled to the mask grid: a cell is sky if the mean coverage there is at least a half. */
+const WHITE = 240; // every channel at least this: painted white, not a picture's highlight
+
+/** A hand-drawn mask, resampled to the mask grid: a cell is sky if at least half its pixels are white. */
 const handMask = (path: string, cols: number, rows: number) => {
   const m = readPng(path);
   const bits = new Uint8Array(cols * rows);
@@ -356,8 +361,12 @@ const handMask = (path: string, cols: number, rows: number) => {
       for (let y = y0; y < y1; y++)
         for (let x = x0; x < x1; x++) {
           const i = y * m.width + x;
-          const light = (m.rgb[i * 3]! + m.rgb[i * 3 + 1]! + m.rgb[i * 3 + 2]!) / 765;
-          sum += light * (m.alpha[i]! / 255);
+          const white =
+            m.rgb[i * 3]! >= WHITE &&
+            m.rgb[i * 3 + 1]! >= WHITE &&
+            m.rgb[i * 3 + 2]! >= WHITE &&
+            m.alpha[i]! >= 128;
+          if (white) sum++;
         }
       bits[cy * cols + cx] = sum / ((x1 - x0) * (y1 - y0)) >= 0.5 ? 1 : 0;
     }
