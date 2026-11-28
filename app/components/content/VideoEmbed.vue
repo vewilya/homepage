@@ -93,6 +93,10 @@ onBeforeUnmount(() => {
   unhush(); // the player is gone: the music may come back
 });
 
+// A player that a tap asked for must load at once: a lazy iframe out of view
+// never loads, and a tap only counts for autoplay while it is fresh.
+const eager = computed(() => props.autoplay || !!props.poster);
+
 const player = computed(() => {
   const yt = props.src.match(/(?:v=|youtu\.be\/)([\w-]+)/);
   const auto = props.autoplay || props.poster ? "&autoplay=1" : "";
@@ -127,7 +131,7 @@ const player = computed(() => {
       :title="title ?? 'Video'"
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
       allowfullscreen
-      loading="lazy"
+      :loading="eager ? 'eager' : 'lazy'"
     />
   </div>
 </template>

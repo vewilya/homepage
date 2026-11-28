@@ -18,6 +18,14 @@ const host = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 const showing = ref<string | null>(null);
 const show = (path: string) => {
   showing.value = showing.value === path ? null : path;
+  // the player sits under the thumbnail on a phone and under the row on a
+  // desk; either way, bring it into view in the scrolling panel
+  if (showing.value)
+    void nextTick(() =>
+      document
+        .querySelector(".project__player")
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+    );
 };
 </script>
 

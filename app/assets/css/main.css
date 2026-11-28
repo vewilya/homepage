@@ -994,6 +994,7 @@ body {
   }
   .project__body {
     grid-column: 1;
+    order: 1; /* the player, when open, comes right under the thumbnail */
   }
 }
 
