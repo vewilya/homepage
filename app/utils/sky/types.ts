@@ -1,3 +1,5 @@
+import type { AudioReading } from "./spectrum";
+
 /**
  * Shared shapes for the sky effects. Every effect is a plain object with a
  * `draw` and an optional `resize`, no Vue inside, so it can be run and
@@ -10,7 +12,7 @@ export type Frame = {
   time: number; // seconds since the loop started
   dt: number; // seconds since the last drawn frame
   dark: number; // 0 in light mode, 1 in dark, in between during the crossfade
-  level: number; // the music's presence, 0..1; 0 in silence (sampled once per frame)
+  audio: AudioReading; // the music this frame: presence, bands and hits (sampled once per frame)
 };
 
 export type Effect = {

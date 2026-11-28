@@ -16,7 +16,10 @@ import { LATTICE, hash2 } from "./types";
  * and lets them go again. The music drives it: the louder the track, the
  * faster the tapes climb, turn and flicker, the wider the window that
  * resolves into words, the brighter the type, and the words warm towards
- * the accent.
+ * the accent. The hits move it too: every hit below, a kick or a bass note,
+ * turns the helix a step further, so it keeps the track's time, and flares
+ * the tube, brightens and reddens the type for a moment; a hit above, a
+ * hi-hat or a click, flips a share of the noise to new characters.
  *
  * Same geometry as SkyDecor's arc B, mapped the way the SVG's slice scaling
  * maps it, so the tube is threaded on the drawn line.
@@ -28,6 +31,9 @@ export type GlyphStreamOptions = {
   radius?: number; // the tube's radius at the bottom, in cells
   flare?: number; // how much wider it is at the top, in cells
   flickerSeconds?: number; // a noise cell keeps its character about this long, in silence
+  step?: number; // radians the helix turns on every low hit
+  flareHit?: number; // cells the tube widens on a full low hit
+  flipShare?: number; // share of the noise cells a high hit flips, 0..1
   gap?: number; // blank cells between two readings of the phrase
   dropout?: number; // share of cells that stay blank for good, 0..1
   minSeconds?: number; // one trip from the bottom to the top, fastest lane
@@ -76,6 +82,9 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
   const maxSeconds = o.maxSeconds ?? 320;
   const spinSeconds = o.spinSeconds ?? 150;
   const flickerSeconds = o.flickerSeconds ?? 6;
+  const step = o.step ?? 0.08;
+  const flareHit = o.flareHit ?? 1.5;
+  const flipShare = o.flipShare ?? 0.3;
   const alphaDark = o.alphaDark ?? 0.46;
   const alphaLight = o.alphaLight ?? 0.66;
   const fontSize = o.fontSize ?? 8;
@@ -96,6 +105,8 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
   // has turned, in radians; the music sets both paces
   const travelled = new Float64Array(lanes);
   let turned = 0;
+  let stepped = 0; // the beats' share of the turn: eased towards beats * step
+  let beatsSeen = 0;
 
   const bezier = (t: number): [number, number] => {
     const u = 1 - t;
@@ -152,7 +163,8 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
       fonts[d] = `${fontSize + d - 1}px "JetBrains Mono", ui-monospace, Menlo, monospace`;
   };
 
-  const draw = ({ ctx, time, dt, dark, level }: Frame) => {
+  const draw = ({ ctx, time, dt, dark, audio }: Frame) => {
+    const { level, lowHit, highHit, beats, clicks } = audio;
     if (!slots) return;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -174,18 +186,33 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
     // a resolved word's warmth at the window's centre: cream only needs a
     // touch of the accent to read as warm, navy needs most of it, or the mix
     // is a brown-grey that vanishes over the blue sky
-    const warm = (0.85 + 0.15 * level) * (1 - dark) + (0.45 + 0.55 * level) * dark;
+    const warm = Math.min(
+      1,
+      (0.85 + 0.15 * level) * (1 - dark) + (0.45 + 0.55 * level) * dark + 0.4 * lowHit,
+    );
     // and a standing tint up the arc, towards the sun and the ring, that the
-    // music deepens
-    const tint = 0.3 * (0.3 + 0.7 * level);
-    const base = (alphaLight + (alphaDark - alphaLight) * dark) * (0.85 + 0.7 * level);
+    // music deepens and a low hit flushes
+    const tint = Math.min(1, 0.3 * (0.3 + 0.7 * level) + 0.35 * lowHit);
+    // a low hit lifts the type, a high hit gives it a quick glint
+    const base =
+      (alphaLight + (alphaDark - alphaLight) * dark) *
+      (0.85 + 0.7 * level) *
+      (1 + 0.5 * lowHit + 0.25 * highHit);
     const cell = spacing / 2;
     const width = ctx.canvas.clientWidth;
     // the pace: a slow climb and turn in silence, up to twice that at full level
     const pace = 1 + level;
     turned += (dt / spinSeconds) * TAU * pace;
-    // the window of resolution widens with the level: a swell brings words out
-    const halfWindow = 0.035 + 0.09 * level;
+    // every beat turns the helix a step further, eased over a few frames so
+    // it is a nudge and not a jump; silence resets the count
+    if (beats < beatsSeen) beatsSeen = beats;
+    stepped += (beats * step - stepped) * Math.min(1, dt * 10);
+    beatsSeen = beats;
+    // the window of resolution widens with the level and on a hit: a swell
+    // or a kick brings words out
+    const halfWindow = 0.035 + 0.09 * level + 0.05 * lowHit;
+    // a high hit flips a share of the noise cells to new characters
+    const flip = clicks;
 
     for (let li = 0; li < lanes; li++) {
       // each lane: its own pace, its place around the tube, a drifting window
@@ -193,7 +220,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
       travelled[li]! += (dt / seconds) * slots * pace;
       const shift = travelled[li]! + hash2(li, 11) * slots; // cells travelled
       const window = ((time / (seconds * 0.4) + hash2(li, 13)) % 1.3) * 1.1 - 0.05;
-      const phase = (li / lanes) * TAU + turned;
+      const phase = (li / lanes) * TAU + turned + stepped;
       for (let s = 0; s < slots; s++) {
         const t = s / (slots - 1);
         // the tape slides upwards: the cell at s shows the tape's character
@@ -208,7 +235,7 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
         // the cosine is the offset across the arc, the sine the depth
         const angle = phase + t * turns * TAU;
         const depth = Math.sin(angle); // -1 far side, 1 near side
-        const r = (radius + flare * t) * spacing;
+        const r = (radius + flare * t + flareHit * lowHit) * spacing;
         const across = Math.cos(angle) * r;
         const x = Math.round((px[s]! + nx[s]! * across) / spacing) * spacing;
         const y = Math.round((py[s]! + ny[s]! * across) / spacing) * spacing;
@@ -220,7 +247,8 @@ export const createGlyphStream = (o: GlyphStreamOptions = {}): Effect => {
         // noise changes on its own slow clock per cell, half to one and a
         // half times flickerSeconds, faster as it resolves and with the music
         const period = (flickerSeconds * (0.5 + hash2(k, li)) * (1 - 0.7 * resolve)) / pace;
-        const tick = Math.floor(time / period);
+        // cells in the flip share take a new character on every click as well
+        const tick = Math.floor(time / period) + (hash2(k, li + 41) < flipShare ? flip : 0);
         const ch =
           resolve > 0.5
             ? home

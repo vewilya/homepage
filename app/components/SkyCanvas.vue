@@ -15,7 +15,7 @@
 import type { Effect, Frame } from "~/utils/sky/types";
 import { createLivingGrid, debug as gridDebug } from "~/utils/sky/livingGrid";
 import { createGlyphStream } from "~/utils/sky/glyphStream";
-import { sampleLevel } from "~/utils/sky/spectrum";
+import { sampleAudio } from "~/utils/sky/spectrum";
 
 const FRAME_MS = 40; // ~25 fps
 const MODE_EASE_MS = 8000; // matches --mode-fade in main.css
@@ -54,6 +54,7 @@ onMounted(() => {
   let startedAt = 0;
   let lastDrawn = 0;
   let dark = 0;
+  let lastAudio: Frame["audio"] | undefined; // dev: the last reading
   // the mode fade in flight: from the value at the switch towards the new target
   let fadeFrom = 0;
   let fadeTo = 0;
@@ -87,17 +88,11 @@ onMounted(() => {
     dark = fadeFrom + (fadeTo - fadeFrom) * cssEase((now - fadeStart) / MODE_EASE_MS);
 
     ctx.clearRect(0, 0, width, height);
-    // the music's presence, read once a frame: the sampler smooths per call
-    const level = sampleLevel();
-    const f: Frame = {
-      ctx,
-      width,
-      height,
-      time: (now - startedAt) / 1000,
-      dt,
-      dark,
-      level,
-    };
+    // the music, read once a frame: the sampler's followers step per call
+    const time = (now - startedAt) / 1000;
+    const audio = sampleAudio(dt, time);
+    const f: Frame = { ctx, width, height, time, dt, dark, audio };
+    if (import.meta.dev) lastAudio = audio;
     const t0 = import.meta.dev ? performance.now() : 0;
     for (const e of effects) e.draw(f);
     if (import.meta.dev) stats.drawMs = performance.now() - t0;
@@ -123,6 +118,9 @@ onMounted(() => {
       return dark;
     },
     grid: gridDebug,
+    get audio() {
+      return lastAudio;
+    },
   };
   if (import.meta.dev) (window as unknown as { __sky: typeof stats }).__sky = stats;
 

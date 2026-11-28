@@ -119,7 +119,7 @@ const buildPlayers = (base: string) => {
       if (!analyser) {
         analyser = ctx.createAnalyser();
         analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.7;
+        analyser.smoothingTimeConstant = 0.5; // low enough that a kick is a step, not a slope
         analyser.connect(ctx.destination);
         attachAnalyser(analyser);
       }
